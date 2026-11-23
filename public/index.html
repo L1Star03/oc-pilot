@@ -281,6 +281,15 @@ main{flex:1;overflow:hidden;display:flex}
 .acchist .hmeta{color:var(--mut);flex:0 0 auto;font-size:10.5px}
 .acchist .hout{color:var(--dim);word-break:break-all;max-height:60px;overflow:hidden}
 .accdot{letter-spacing:2px;font-size:10px}
+.thk{margin:7px 0;border:1px dashed var(--ln);border-radius:6px;overflow:hidden}
+.thkh{padding:5px 10px;font-size:11px;color:var(--mut);cursor:pointer;background:var(--sub-bg);user-select:none;letter-spacing:1px}
+.thkh em{font-style:normal;float:right}
+.thkb{display:none;padding:8px 11px;font-size:12px;color:var(--dim);white-space:pre-wrap;word-break:break-word;max-height:260px;overflow-y:auto;line-height:1.55}
+.thk.open .thkb{display:block}
+.thk.open .thkh{color:var(--cy)}
+.scur{color:var(--cy);animation:pulse 1s infinite;margin-left:2px}
+.rdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--cy);margin-right:7px;animation:pulse 1s infinite}
+.lastmsg{margin-top:5px;font-size:10.5px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 *::-webkit-scrollbar{width:8px;height:8px}
 *::-webkit-scrollbar-track{background:transparent}
 *::-webkit-scrollbar-thumb{background:var(--ln2);border-radius:4px}
@@ -363,7 +372,7 @@ main{flex:1;overflow:hidden;display:flex}
 <body>
 <div id="app">
   <header>
-    <div class="brand">◤ OC-PILOT <small id="ver">// v1.4.2</small></div>
+    <div class="brand">◤ OC-PILOT <small id="ver">// v1.4.5</small></div>
     <div id="dot"></div>
     <select id="bk"></select>
     <span style="flex:1"></span>
@@ -388,6 +397,8 @@ main{flex:1;overflow:hidden;display:flex}
         <button class="hbtn" id="ovdel">删除</button>
       </div>
       <div id="ovbody"></div>
+      <div id="limitnote" style="display:none;margin:0 12px 6px;padding:8px 10px;border:1px solid var(--wn);border-radius:4px;font-size:12px;color:var(--tx);background:var(--card-bg);line-height:1.5"></div>
+      <div id="runbar" style="display:none;padding:6px 14px;font-size:11.5px;color:var(--cy);letter-spacing:1px;background:var(--bar-bg);border-top:1px solid var(--ln)"></div>
       <div id="ovfoot">
         <textarea id="inp" rows="1" placeholder="发送指令…"></textarea>
         <button id="send">发送</button>
@@ -449,6 +460,7 @@ main{flex:1;overflow:hidden;display:flex}
     <h3>◤ 设置</h3>
     <div id="settheme"></div>
     <div id="setspeed"></div>
+    <div id="seteffort"></div>
     <div id="setagents"></div>
     <div id="setmodels" style="max-height:38vh;overflow-y:auto"></div>
     <div class="btns"><button id="sclose">完成</button></div>
@@ -469,7 +481,7 @@ main{flex:1;overflow:hidden;display:flex}
   <div id="mwb"></div>
 </div>
 <script>
-var S = { backend: localStorage.getItem("oc_backend") || "4096", backends: [], tasks: {}, statuses: {}, perms: {}, questions: {}, sessions: {}, curTask: null, curTab: "chat", msgs: [], todos: [], diffs: [], fsMode: false, prevUpdated: {}, liveUntil: {}, editing: null, queue: {}, liveTools: {}, workerInfo: {}, toolLen: {}, stuckSince: {}, miniSid: null, cardSubOpen: {}, dbg: [], wasBusy: {}, resumed: {}, woken: {}, roleMig: {} };
+var S = { backend: localStorage.getItem("oc_backend") || "4096", backends: [], tasks: {}, statuses: {}, perms: {}, questions: {}, sessions: {}, curTask: null, curTab: "chat", msgs: [], todos: [], diffs: [], fsMode: false, prevUpdated: {}, liveUntil: {}, runStart: {}, lastMsg: {}, editing: null, queue: {}, liveTools: {}, workerInfo: {}, toolLen: {}, stuckSince: {}, miniSid: null, cardSubOpen: {}, dbg: [], limitWarned: {}, wasBusy: {}, resumed: {}, woken: {}, roleMig: {} };
 function dbgLog(msg){
   S.dbg.unshift(new Date().toTimeString().slice(0,8) + " " + msg);
   if (S.dbg.length > 6) S.dbg.pop();
@@ -510,6 +522,35 @@ function fmtRel(t){
   return (dt.getMonth()+1) + "-" + dt.getDate() + " " + fmtTime(t);
 }
 function fmtSize(n){ if(n==null) return ""; if(n>1048576) return (n/1048576).toFixed(1)+"M"; if(n>1024) return (n/1024).toFixed(0)+"K"; return n+"B"; }
+function fmtDur(ms){
+  var s = Math.round(ms / 1000);
+  if (s < 60) return s + "s";
+  var m = Math.floor(s / 60);
+  if (m < 60) return m + "m" + (s % 60 ? (s % 60) + "s" : "");
+  return Math.floor(m / 60) + "h" + (m % 60) + "m";
+}
+async function prefetchLastMsg(){
+  for (var id in S.tasks) {
+    var t = S.tasks[id];
+    if (!t.sessionID) continue;
+    if (activityOf(t.sessionID) !== "run") { if (S.lastMsg[t.sessionID]) delete S.lastMsg[t.sessionID]; continue; }
+    (function(sid){
+      api("/session/" + sid + "/message?limit=1").then(function(ms){
+        if (!ms || !ms.length) return;
+        var m = ms[0], parts = m.parts || [];
+        var txt = "", lastTool = "";
+        for (var i=0;i<parts.length;i++){
+          var p = parts[i];
+          if (p.type === "text" && p.text) txt = p.text;
+          else if (p.type === "reasoning" && p.text && !txt) txt = p.text;
+          else if (p.type === "tool" && p.state && p.state.status === "running") lastTool = (p.state.title || p.state.name || p.tool || "");
+        }
+        var snippet = String(lastTool || txt || "").replace(/\s+/g, " ").slice(0, 80);
+        if (snippet) S.lastMsg[sid] = snippet;
+      }).catch(function(){});
+    })(t.sessionID);
+  }
+}
 function toolTail(st){
   try {
     var o = st && st.state && st.state.output;
@@ -914,7 +955,7 @@ function isWorkerSession(s){
   return / #W\d| #MERGE/.test(s.title || "");
 }
 function renderBoard(){
-  var sig = JSON.stringify(S.statuses) + "#" + Object.keys(S.tasks).map(function(k){ var t=S.tasks[k]; return k+t.stage+t.updated+(t.sessionID||"")+(t.sessionID?activityOf(t.sessionID):"")+((t.workers&&t.workers.length)||0)+(t.merged?1:0); }).sort().join("|") + "#" + Object.keys(S.sessions).map(function(k){ var s=S.sessions[k]; return k+((s.time&&s.time.updated)||0)+((s._todo&&s._todo.length)||0)+(s.parentID||""); }).sort().join("|") + "#" + JSON.stringify(S.liveTools) + "#" + JSON.stringify(S.cardSubOpen);
+  var sig = JSON.stringify(S.statuses) + "#" + Object.keys(S.tasks).map(function(k){ var t=S.tasks[k]; return k+t.stage+t.updated+(t.sessionID||"")+(t.sessionID?activityOf(t.sessionID):"")+((t.workers&&t.workers.length)||0)+(t.merged?1:0); }).sort().join("|") + "#" + Object.keys(S.sessions).map(function(k){ var s=S.sessions[k]; return k+((s.time&&s.time.updated)||0)+((s._todo&&s._todo.length)||0)+(s.parentID||""); }).sort().join("|") + "#" + JSON.stringify(S.liveTools) + "#" + JSON.stringify(S.cardSubOpen) + "#" + JSON.stringify(S.lastMsg) + "#" + Object.keys(S.runStart).map(function(k){ return k + Math.floor((Date.now() - S.runStart[k]) / 10000); }).join(",");
   if (sig === renderBoard._sig) return;
   renderBoard._sig = sig;
   var b = $("board");
@@ -968,7 +1009,14 @@ function cardHtml(t){
       line += '<span class="stag">R' + ((t.acc.cur||0)+1) + '/' + rlist.length + '</span><span class="stag accdot">' + rd + '</span>';
     }
   }
-  line += '<span style="flex:1"></span><span class="stag">' + fmtRel(ts) + (t.sessionID ? " · L" : "") + '</span>';
+  if (act === "run") {
+    var rsid = t.sessionID || (t.workers && t.workers[0] && t.workers[0].sessionID);
+    if (rsid) { if (!S.runStart[rsid]) S.runStart[rsid] = Date.now(); line += '<span class="stag">⏱ ' + fmtDur(Date.now() - S.runStart[rsid]) + '</span>'; }
+    else { line += '<span class="stag">⏱ 运行中</span>'; }
+  }
+  line += '<span style="flex:1"></span><span class="stag">' + fmtRel(ts) + '</span>';
+  var liveHtml = "";
+  if (act === "run" && t.sessionID && S.lastMsg[t.sessionID]) liveHtml = '<div class="lastmsg">» ' + esc(S.lastMsg[t.sessionID]) + '</div>';
   if (t.sessionID && S.queue[t.sessionID] && S.queue[t.sessionID].length) chip += '<span class="chip rec">⧗' + S.queue[t.sessionID].length + '</span>';
   var prog = "";
   var s = S.sessions[t.sessionID];
@@ -1033,7 +1081,7 @@ function cardHtml(t){
   }
   return '<div class="tcard" draggable="true" data-id="'+t.id+'">' +
     '<div class="title">'+esc(t.title)+'</div>' +
-    '<div class="statline">'+line+'</div>' +
+    '<div class="statline">'+line+'</div>' + liveHtml +
     (t.desc ? '<div class="desc">'+esc(t.desc)+'</div>' : "") + prog +
     '<div class="btnrow">'+btns+'</div>'+subs+'</div>';
 }
@@ -1130,6 +1178,7 @@ async function sendMsg(sid, text, opts){
   var body = { parts: [{ type: "text", text: text }] };
   if (opts && opts.model) body.model = opts.model;
   if (opts && opts.agent) body.agent = opts.agent;
+  if (opts && opts.options) body.options = opts.options;
   await api("/session/" + sid + "/prompt_async", { method: "POST", body: JSON.stringify(body) });
 }
 var modelList = [];
@@ -1163,7 +1212,8 @@ function updateSetButton(){
   var m = localStorage.getItem("oc_model") || "";
   var a = localStorage.getItem("oc_agent") || "";
   var el = $("ovsetm");
-  if (el) el.textContent = (m ? m.split("/").pop() : "默认") + (a ? "/" + a : "");
+  var e2 = localStorage.getItem("oc_effort") || "";
+  if (el) el.textContent = (m ? m.split("/").pop() : "默认") + (a ? "/" + a : "") + (e2 ? "/" + e2 : "");
 }
 var THEMES = [
   { id: "orange", name: "黑橙", desc: "深炭底 + 暖橙 #e0873d" },
@@ -1205,6 +1255,19 @@ function renderSetDialog(){
     S.fastMs = parseInt(this.getAttribute("data-setspeed"), 10);
     renderSetDialog();
     toast("刷新间隔 → " + (S.fastMs/1000) + "s");
+  };
+  var curE = localStorage.getItem("oc_effort") || "";
+  var eh = '<div class="sethead">思考强度（reasoningEffort，仅支持该参数的模型生效）</div>';
+  [["", "默认"], ["low", "低"], ["medium", "中"], ["high", "高"]].forEach(function(x){
+    eh += '<div class="setopt'+(curE===x[0]?" on":"")+'" data-seteffort="'+x[0]+'"><span class="chk">'+(curE===x[0]?"◉":"○")+'</span><span class="sn">'+x[1]+'</span></div>';
+  });
+  $("seteffort").innerHTML = eh;
+  var eos = document.querySelectorAll("[data-seteffort]");
+  for (var ei=0;ei<eos.length;ei++) eos[ei].onclick = function(){
+    var v = this.getAttribute("data-seteffort") || "";
+    if (v) localStorage.setItem("oc_effort", v); else localStorage.removeItem("oc_effort");
+    toast("思考强度→ " + (v || "默认"));
+    renderSetDialog(); updateSetButton();
   };
   var curM = localStorage.getItem("oc_model") || "";
   var curA = localStorage.getItem("oc_agent") || "";
@@ -1265,8 +1328,10 @@ function sendOpts(){
   var o = {};
   var m = localStorage.getItem("oc_model") || "";
   var a = localStorage.getItem("oc_agent") || "";
+  var e = localStorage.getItem("oc_effort") || "";
   if (m && m.indexOf("/") > 0) o.model = { providerID: m.slice(0, m.indexOf("/")), modelID: m.slice(m.indexOf("/") + 1) };
   if (a) o.agent = a;
+  if (e) o.options = { reasoningEffort: e };
   return o;
 }
 
@@ -2149,6 +2214,7 @@ async function refreshDetail(full){
     var dv = document.getElementById("dview");
     if (!dv) return;
     var sc = $("ovbody");
+    if (S.msgs.length) checkLimitWarn(S.msgs[S.msgs.length - 1]);
     var cSig = chatSig();
     var skipRender = !full && (cSig === refreshDetail._sig || hasTextSelection());
     refreshDetail._sig = cSig;
@@ -2199,6 +2265,13 @@ function bindChatExtras(dv){
     if (e.target.tagName === "A") return;
     this.classList.toggle("xopen");
   });
+  var ths = dv.querySelectorAll(".thkh");
+  for (s2=0;s2<ths.length;s2++) ths[s2].onclick = function(e){
+    e.stopPropagation();
+    var box = this.parentElement;
+    box.classList.toggle("open");
+    this.querySelector("em").textContent = box.classList.contains("open") ? "▾" : "▸";
+  };
   var rvs = dv.querySelectorAll("[data-revert]");
   for (s2=0;s2<rvs.length;s2++) rvs[s2].onclick = function(e){
     e.stopPropagation();
@@ -2210,6 +2283,119 @@ function bindChatExtras(dv){
       .then(function(){ toast("已回滚"); refreshDetail._sig = ""; markDirty(); })
       .catch(function(){ toast("回滚失败"); });
   };
+}
+
+function renderMessageHtml(m, isLast, running){
+  var info = m.info || {};
+  var parts = m.parts || [];
+  var lastTool = -1;
+  for (var j=0;j<parts.length;j++) if (parts[j].type === "tool") lastTool = j;
+  var intro = "", finalTxt = "", toolHtml = "", thinkHtml = "";
+  for (j=0;j<parts.length;j++){
+    var p = parts[j];
+    if (p.type === "reasoning" && p.text) {
+      var open = isLast && running;
+      thinkHtml += '<div class="thk'+(open?" open":"")+'"><div class="thkh">💭 '+(open?"思考中…":"思考")+' <em>'+(open?"▾":"▸")+'</em></div><div class="thkb">'+esc(p.text)+'</div></div>';
+    } else if (p.type === "text" && p.text) {
+      if (j > lastTool) finalTxt = p.text;
+      else intro += mdRender(p.text);
+    }
+  }
+  for (j=0;j<parts.length;j++){
+    var t = parts[j];
+    if (t.type !== "tool") continue;
+    var stt = (t.state || {}).status || "pending";
+    var ttl = (t.state && (t.state.title || t.state.name)) || "";
+    var inp = "";
+    try { inp = t.state && t.state.input ? JSON.stringify(t.state.input).slice(0,90) : ""; } catch(e){}
+    var isAgent = (t.tool === "task");
+    var fullOut = "";
+    try { fullOut = String(((t.state||{}).output)||"").slice(0, 3000); } catch(e){}
+    toolHtml += '<div class="sub '+(isAgent?"agent ":"")+(stt==="running"?"running":"")+'" style="cursor:pointer"><div class="t1"><span>'+(isAgent?"◈":"⚙")+'</span><span class="tn">'+esc(t.tool||"tool")+'</span><span class="tt">'+esc(ttl||inp)+'</span><span class="ts '+stt+'">'+({completed:"OK",running:"RUN",pending:"WAIT",error:"ERR"}[stt]||stt)+'</span></div>'+(stt==="running"&&toolTail(t)?('<pre style="margin:6px 0 0;background:var(--code-bg);border-radius:5px;padding:6px 8px;font-size:11px;max-height:110px;overflow:hidden;white-space:pre-wrap;word-break:break-all;color:#8fb8d8">'+esc(toolTail(t))+'<span style="color:var(--cy)">▌</span></pre>'):"")+(fullOut?'<pre class="fullout">'+esc(fullOut)+'</pre>':"")+'</div>';
+  }
+  var cur = (isLast && running && info.role === "assistant") ? '<span class="scur">▌</span>' : "";
+  return '<div class="msg '+(info.role === "user" ? "user" : "assistant")+'" data-mid="'+esc(info.id||"")+'"><div class="who">'+(info.role === "user" ? "OPERATOR" : "AGENT")+' · '+fmtTime(info.time && info.time.created)+(modelShort(info.model)?' · <span style="color:var(--mut)">'+esc(modelShort(info.model))+'</span>':"")+(info.role !== "user" && info.id ? ' <button class="rvbtn" data-revert="'+esc(info.id)+'" title="回滚到此消息之前">↩</button>' : "")+'</div>' +
+    (intro ? '<div class="mseg">'+intro+'</div>' : "") +
+    thinkHtml + toolHtml +
+    (finalTxt ? '<div class="mseg final">'+mdRender(finalTxt)+cur+'</div>' : (cur ? '<div class="mseg">'+cur+'</div>' : "")) +
+    '</div>';
+}
+
+async function streamTick(){
+  if (!S.curTask || S.curTab !== "chat") return;
+  if (!$("ovl").classList.contains("open")) return;
+  var t = S.curTask;
+  var sid = S.viewSid || t.sessionID;
+  if (!sid) { updateRunBar(); return; }
+  var running = activityOf(sid) === "run";
+  updateRunBar();
+  if (!running) return;
+  if (hasTextSelection()) return;
+  try {
+    var msgs = (await api("/session/" + sid + "/message?limit=3")) || [];
+    if (!msgs.length) return;
+    var last = msgs[msgs.length - 1];
+    var lastId = last.info && last.info.id;
+    if (!lastId) return;
+    var localIdx = -1;
+    for (var i=S.msgs.length-1;i>=0;i--) if (S.msgs[i].info && S.msgs[i].info.id === lastId) { localIdx = i; break; }
+    if (localIdx < 0) { refreshDetail._sig = ""; refreshDetail(false); return; }
+    S.msgs[localIdx] = last;
+    checkLimitWarn(last);
+    var el = document.querySelector('#dview [data-mid="'+lastId+'"]');
+    if (!el) { refreshDetail._sig = ""; refreshDetail(false); return; }
+    if (hasTextSelection()) return;
+    var tmp = document.createElement("div");
+    tmp.innerHTML = renderMessageHtml(last, true, true);
+    var fresh = tmp.firstElementChild;
+    if (fresh) {
+      el.replaceWith(fresh);
+      var sc = $("ovbody");
+      var near = sc.scrollHeight - sc.scrollTop - sc.clientHeight < 160;
+      if (near) sc.scrollTop = sc.scrollHeight;
+    }
+    refreshDetail._sig = chatSig();
+  } catch(e){}
+}
+
+var S_runStart = S.runStart;
+function updateRunBar(){
+  var bar = $("runbar");
+  if (!bar) return;
+  var t = S.curTask;
+  var sid = t ? (S.viewSid || t.sessionID) : null;
+  var running = sid ? activityOf(sid) === "run" : false;
+  if (!running || !$("ovl").classList.contains("open") || S.curTab !== "chat") { bar.style.display = "none"; return; }
+  if (!S_runStart[sid]) S_runStart[sid] = Date.now();
+  var secs = Math.round((Date.now() - S_runStart[sid]) / 1000);
+  var lu = (S.sessions[sid] && S.sessions[sid].time && S.sessions[sid].time.updated) || 0;
+  var stale = lu ? Math.round((Date.now() - lu) / 1000) : 0;
+  var warn = (stale > 120) ? ' · <span style="color:var(--wn)">最后活动 ' + stale + 's 前（可能限流或卡住，可点 ■ 中断）</span>' : '';
+  bar.innerHTML = '<span class="rdot"></span>AGENT 生成中… ' + secs + 's' + warn;
+  bar.style.display = "";
+}
+
+function checkLimitWarn(m){
+  var info = m.info || {};
+  var txt = "";
+  if (info.error && info.error.message) txt += info.error.message;
+  var parts = m.parts || [];
+  for (var i=0;i<parts.length;i++) {
+    var p = parts[i];
+    if (p.type === "text" && p.text) txt += " " + p.text;
+    if (p.type === "tool" && p.state && p.state.status === "error" && p.state.output) txt += " " + String(p.state.output);
+  }
+  if (!txt) return;
+  if (!/(rate.?limit|quota|429|限流|限额|额度|余额不足|insufficient|too.?many.?requests|overloaded|billing|payment required)/i.test(txt)) return;
+  var id = info.id || "x";
+  if (S.limitWarned[id]) return;
+  S.limitWarned[id] = 1;
+  toast("⚠ 检测到模型限额/限流：请切换模型（⚙ 设置）或稍后重试");
+  var note = $("limitnote");
+  if (note) {
+    note.innerHTML = '⚠ <b>模型限额/限流</b>：本次请求可能未完成。可切换模型（右上 ⚙）后重新发送。<span style="color:var(--mut)">' + esc(txt.slice(0, 120)) + '</span>';
+    note.style.display = "";
+  }
 }
 
 function renderChat(){
@@ -2229,49 +2415,9 @@ function renderChat(){
     html += '</div>';
   }
   if (S.viewSid) html += '<div style="margin:0 12px 6px;font-size:11px;color:var(--wn);letter-spacing:1px">⚠ 正在查看分工智能体对话（只读）</div>';
+  var running = sid ? activityOf(sid) === "run" : false;
   for (var i=0;i<S.msgs.length;i++){
-    var m = S.msgs[i], info = m.info || {};
-    var parts = m.parts || [];
-    var lastTool = -1;
-    for (var j=0;j<parts.length;j++) if (parts[j].type === "tool") lastTool = j;
-    var segs = [];
-    for (j=0;j<parts.length;j++){
-      var p = parts[j];
-      if (p.type === "text" && p.text) segs.push({ kind:"text", text:p.text, final:(j > lastTool) });
-      else if (p.type === "tool") segs.push({ kind:"tool", part:p });
-    }
-    if (!segs.length) continue;
-    if (info.role === "user") {
-      var ut = segs.filter(function(x){ return x.kind === "text"; }).map(function(x){ return x.text; }).join("\n\n");
-      if (ut) html += '<div class="msg user"><div class="who">OPERATOR · '+fmtTime(info.time && info.time.created)+'</div>'+mdRender(ut)+'</div>';
-      continue;
-    }
-    var intro = "";
-    var finalTxt = "";
-    for (j=0;j<segs.length;j++){
-      var sg2 = segs[j];
-      if (sg2.kind !== "text") continue;
-      if (sg2.final && j > lastTool) finalTxt = sg2.text;
-      else intro += mdRender(sg2.text);
-    }
-    var toolHtml = "";
-    for (j=0;j<segs.length;j++){
-      var sg3 = segs[j];
-      if (sg3.kind !== "tool") continue;
-      var t = sg3.part, stt = (t.state || {}).status || "pending";
-      var ttl = (t.state && (t.state.title || t.state.name)) || "";
-      var inp = "";
-      try { inp = t.state && t.state.input ? JSON.stringify(t.state.input).slice(0,90) : ""; } catch(e){}
-      var isAgent = (t.tool === "task");
-      var fullOut = "";
-      try { fullOut = String(((t.state||{}).output)||"").slice(0, 3000); } catch(e){}
-      toolHtml += '<div class="sub '+(isAgent?"agent ":"")+(stt==="running"?"running":"")+'" style="cursor:pointer"><div class="t1"><span>'+(isAgent?"◈":"⚙")+'</span><span class="tn">'+esc(t.tool||"tool")+'</span><span class="tt">'+esc(ttl||inp)+'</span><span class="ts '+stt+'">'+({completed:"OK",running:"RUN",pending:"WAIT",error:"ERR"}[stt]||stt)+'</span></div>'+(stt==="running"&&toolTail(t)?('<pre style="margin:6px 0 0;background:var(--code-bg);border-radius:5px;padding:6px 8px;font-size:11px;max-height:110px;overflow:hidden;white-space:pre-wrap;word-break:break-all;color:#8fb8d8">'+esc(toolTail(t))+'<span style="color:var(--cy)">▌</span></pre>'):"")+(fullOut?'<pre class="fullout">'+esc(fullOut)+'</pre>':"")+'</div>';
-    }
-    html += '<div class="msg '+(info.role === "user" ? "user" : "assistant")+'" data-mid="'+esc(info.id||"")+'"><div class="who">'+(info.role === "user" ? "OPERATOR" : "AGENT")+' · '+fmtTime(info.time && info.time.created)+(modelShort(info.model)?' · <span style="color:var(--mut)">'+esc(modelShort(info.model))+'</span>':"")+(info.role !== "user" && info.id ? ' <button class="rvbtn" data-revert="'+esc(info.id)+'" title="回滚到此消息之前">↩</button>' : "")+'</div>' +
-      (intro ? '<div class="mseg">'+intro+'</div>' : "") +
-      toolHtml +
-      (finalTxt ? '<div class="mseg final">'+mdRender(finalTxt)+'</div>' : "") +
-      '</div>';
+    html += renderMessageHtml(S.msgs[i], i === S.msgs.length - 1, running);
   }
   if (sid) {
     var kids = Object.keys(S.sessions).filter(function(k){ return S.sessions[k].parentID === sid; });
@@ -2295,6 +2441,7 @@ function renderChat(){
   }
   return html;
 }
+
 function renderTodos(){
   if (!S.todos.length) return '<div class="empty">暂无待办清单</div>';
   var done = S.todos.filter(function(t){ return t.status === "completed"; }).length;
@@ -2627,8 +2774,10 @@ $("send").onclick = async function(){
       toast("已排队 第" + S.queue[sid].length + "条（当前回合结束后自动发出）");
       refreshDetail(false);
     } else {
+      S_runStart[sid] = Date.now();
       await sendMsg(sid, v, sendOpts());
-      toast("已直接发送（会话空闲）");
+      toast("已发送，等待回复…");
+      updateRunBar();
     }
     setTimeout(markDirty, 600);
   } catch(e){ toast("发送失败"); }
@@ -2805,6 +2954,7 @@ fastLoop();
   }
 })();
 setInterval(function(){ markDirty(); prefetchTodos(); prefetchLiveTools(); }, 12000);
+setInterval(function(){ streamTick(); }, 900);
 setInterval(function(){ markDirty(); prefetchTodos(); prefetchLiveTools(); }, 12000);
 async function fastLoop(){
   while (true){
@@ -2814,6 +2964,8 @@ async function fastLoop(){
         dbgLog("SSE 看门狗触发重连");
         sseStart();
       }
+      for (var rsid in S_runStart) { if (activityOf(rsid) !== "run") delete S_runStart[rsid]; }
+      if ((S.curTask || S.fsMode) && S.curTab === "chat") updateRunBar();
       for (var sid in S.queue) {
         if (S.queue[sid] && S.queue[sid].length && activityOf(sid) !== "run") {
           var txt = S.queue[sid].shift();
@@ -2822,6 +2974,7 @@ async function fastLoop(){
       }
       if ((S.curTask || S.fsMode) && $("ovl").classList.contains("open")) refreshDetail(false);
       prefetchLiveTools();
+      prefetchLastMsg();
       if (S.miniSid) refreshMini(false);
       if (S.curTask && S.curTask.mode === "multi") fetchWorkerInfos();
       checkMultiTasks();
