@@ -345,11 +345,18 @@ main{flex:1;overflow:hidden;display:flex}
 #adlgbox .btns button{padding:8px 18px;border-radius:7px}
 #acancel{background:var(--btn-bg);color:var(--btn-fg)}
 #sdlg{position:fixed;inset:0;background:rgba(3,6,10,.8);display:none;align-items:center;justify-content:center;z-index:55;padding:16px}
-#sdlgbox{background:var(--bp1);border:1px solid var(--ln2);border-radius:10px;padding:16px;width:min(520px,100%);max-height:82vh;display:flex;flex-direction:column;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,.42)}
+#sdlgbox{background:var(--bp1);border:1px solid var(--ln2);border-radius:10px;padding:16px;width:min(540px,94vw);max-height:84vh;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+#setbody{flex:1;min-height:0;overflow-y:auto;padding-right:4px}
 #sdlgbox h3{font-size:13px;color:var(--cy);letter-spacing:2px}
 #sdlgbox .btns{display:flex;gap:8px;justify-content:flex-end}
 #sclose{background:var(--btn-bg);color:var(--btn-fg);padding:8px 18px;border-radius:3px}
-.sethead{font-size:11px;color:var(--mut);letter-spacing:2px;margin:6px 0 4px}
+.sethead{font-size:11px;color:var(--mut);letter-spacing:2px;margin:10px 0 4px}
+#themepop{position:fixed;z-index:95;background:var(--bp1);border:1px solid var(--ln2);border-radius:6px;padding:6px;display:none;flex-direction:column;gap:4px;min-width:150px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+#themepop.on{display:flex}
+#themepop .topt{padding:7px 10px;border:1px solid transparent;border-radius:4px;font-size:12px;color:var(--tx);cursor:pointer;display:flex;gap:8px;align-items:center}
+#themepop .topt:hover{background:var(--chip-bg)}
+#themepop .topt.sel{border-color:var(--cy);color:var(--cy)}
+#themepop .tsw{width:10px;height:10px;border-radius:2px;flex:0 0 auto}
 .setopt{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--ln);border-radius:8px;margin-bottom:5px;cursor:pointer;font-size:12.5px}
 .setopt.on{border-color:var(--cy);background:color-mix(in srgb, var(--cy) 10%, transparent)}
 .setopt .sn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -372,10 +379,11 @@ main{flex:1;overflow:hidden;display:flex}
 <body>
 <div id="app">
   <header>
-    <div class="brand">◤ OC-PILOT <small id="ver">// v1.4.5</small></div>
+    <div class="brand">◤ OC-PILOT <small id="ver">// v1.4.7</small></div>
     <div id="dot"></div>
     <select id="bk"></select>
     <span style="flex:1"></span>
+    <button class="hbtn" id="thmBtn">◐ 主题</button>
     <button class="hbtn" id="impBtn">📥 导入会话</button>
     <button class="hbtn" id="fsBtn">📁 文件</button>
     <button class="hbtn pri" id="newBtn">＋ 新任务</button>
@@ -389,9 +397,11 @@ main{flex:1;overflow:hidden;display:flex}
       <div id="ovh">
         <button class="hbtn" id="ovclose">‹ 返回</button>
         <div id="ovtitle"></div>
-        <button class="hbtn" id="ovabort" style="display:none;border-color:var(--er);color:var(--er)">■ 中断</button>
+        <button class="hbtn" id="thm2Btn">◐ 主题</button>
+        <button class="hbtn" id="ovset" style="display:none">⚙ <span id="ovsetm">模型设置</span></button>
+        <button class="hbtn" id="newagent" style="background:var(--pri-bg);color:var(--pri-fg);font-weight:700">＋Agent</button>
         <button class="hbtn" id="ovfork" style="display:none">⑂ 分叉</button>
-        <button class="hbtn" id="ovset" style="display:none">⚙ <span id="ovsetm">默认</span></button>
+        <button class="hbtn" id="ovabort" style="display:none;border-color:var(--er);color:var(--er)">■ 中断</button>
         <button class="hbtn" id="ovmulti" style="display:none;border-color:var(--ok);color:var(--ok)">⚡转协同</button>
         <button class="hbtn" id="ovedit">编辑</button>
         <button class="hbtn" id="ovdel">删除</button>
@@ -402,7 +412,6 @@ main{flex:1;overflow:hidden;display:flex}
       <div id="ovfoot">
         <textarea id="inp" rows="1" placeholder="发送指令…"></textarea>
         <button id="send">发送</button>
-        <button id="newagent" style="background:var(--pri-bg);color:var(--pri-fg);font-weight:700;border-radius:8px;padding:0 10px;font-size:12.5px;white-space:nowrap">＋Agent</button>
         <button id="abort" style="border-color:var(--er);color:var(--er);border-radius:8px;padding:0 10px;font-size:12.5px;white-space:nowrap;display:none">■ 中断</button>
       </div>
     </div></div>
@@ -457,15 +466,17 @@ main{flex:1;overflow:hidden;display:flex}
 </div>
 <div id="sdlg">
   <div id="sdlgbox">
-    <h3>◤ 设置</h3>
-    <div id="settheme"></div>
-    <div id="setspeed"></div>
-    <div id="seteffort"></div>
-    <div id="setagents"></div>
-    <div id="setmodels" style="max-height:38vh;overflow-y:auto"></div>
+    <h3>◤ 模型设置</h3>
+    <div id="setbody">
+      <div id="seteffort"></div>
+      <div id="setagents"></div>
+      <div id="setmodels"></div>
+      <div id="setspeed"></div>
+    </div>
     <div class="btns"><button id="sclose">完成</button></div>
   </div>
 </div>
+<div id="themepop"></div>
 <div id="tdlg">
   <div id="dlgbox" style="width:min(420px,100%)">
     <h3>◤ 访问令牌</h3>
@@ -1213,7 +1224,7 @@ function updateSetButton(){
   var a = localStorage.getItem("oc_agent") || "";
   var el = $("ovsetm");
   var e2 = localStorage.getItem("oc_effort") || "";
-  if (el) el.textContent = (m ? m.split("/").pop() : "默认") + (a ? "/" + a : "") + (e2 ? "/" + e2 : "");
+  if (el) el.textContent = "模型设置" + (m ? " · " + m.split("/").pop() : "") + (a ? " · " + a : "") + (e2 ? " · " + e2 : "");
 }
 var THEMES = [
   { id: "orange", name: "黑橙", desc: "深炭底 + 暖橙 #e0873d" },
@@ -1228,27 +1239,48 @@ function applyTheme(tid){
   var mt = document.querySelector('meta[name="theme-color"]');
   if (mt) mt.setAttribute("content", tid === "orange" ? "#141414" : (tid === "gold" ? "#121210" : (tid === "gray" ? "#171717" : (tid === "vscode" ? "#1e1e1e" : "#0b0e14"))));
 }
-function renderSetDialog(){
+var THEME_SWATCH = { orange: "#e0873d", gold: "#d4af37", gray: "#a8a8a8", vscode: "#3794ff" };
+function renderThemePop(){
   var curTheme = localStorage.getItem("oc_theme") || "orange";
-  var curFast = parseInt(localStorage.getItem("oc_fastms") || "2500", 10);
-  var th = '<div class="sethead">主题</div>';
+  var h = "";
   for (var ti=0;ti<THEMES.length;ti++) {
     var t2 = THEMES[ti];
-    th += '<div class="setopt'+(curTheme===t2.id?" on":"")+'" data-settheme="'+t2.id+'"><span class="chk">'+(curTheme===t2.id?"◉":"○")+'</span><span class="sn">'+esc(t2.name)+'</span><span class="sp">'+esc(t2.desc)+'</span></div>';
+    h += '<div class="topt'+(curTheme===t2.id?" sel":"")+'" data-settheme="'+t2.id+'"><span class="tsw" style="background:'+(THEME_SWATCH[t2.id]||"#888")+'"></span>'+esc(t2.name)+'</div>';
   }
-  $("settheme").innerHTML = th;
+  $("themepop").innerHTML = h;
+  var tos = document.querySelectorAll("#themepop [data-settheme]");
+  for (ti=0;ti<tos.length;ti++) tos[ti].onclick = function(){
+    applyTheme(this.getAttribute("data-settheme"));
+    renderThemePop();
+    $("themepop").classList.remove("on");
+    toast("主题已切换");
+  };
+}
+function openThemePop(btn){
+  var pop = $("themepop");
+  if (pop.classList.contains("on")) { pop.classList.remove("on"); return; }
+  renderThemePop();
+  var r = btn.getBoundingClientRect();
+  pop.style.display = "flex";
+  var pw = pop.offsetWidth;
+  var left = Math.min(r.left, window.innerWidth - pw - 8);
+  pop.style.left = Math.max(8, left) + "px";
+  pop.style.top = (r.bottom + 6) + "px";
+  pop.classList.add("on");
+}
+$("thmBtn").onclick = function(e){ e.stopPropagation(); openThemePop(this); };
+$("thm2Btn").onclick = function(e){ e.stopPropagation(); openThemePop(this); };
+document.addEventListener("click", function(e){ if ($("themepop").classList.contains("on") && !e.target.closest("#thmBtn") && !e.target.closest("#thm2Btn") && !e.target.closest("#themepop")) $("themepop").classList.remove("on"); });
+renderThemePop();
+
+function renderSetDialog(){
+  var curFast = parseInt(localStorage.getItem("oc_fastms") || "2500", 10);
   var sp = '<div class="sethead">刷新 / 调用速度</div>';
   var speeds = [[1000,"极速 1s"],[2500,"标准 2.5s"],[5000,"省流 5s"],[10000,"节能 10s"]];
   for (var si=0;si<speeds.length;si++) {
     sp += '<div class="setopt'+(curFast===speeds[si][0]?" on":"")+'" data-setspeed="'+speeds[si][0]+'"><span class="chk">'+(curFast===speeds[si][0]?"◉":"○")+'</span><span class="sn">'+speeds[si][1]+'</span><span class="sp">实时轮询间隔</span></div>';
   }
   $("setspeed").innerHTML = sp;
-  var tos = document.querySelectorAll("[data-settheme]");
-  for (ti=0;ti<tos.length;ti++) tos[ti].onclick = function(){
-    applyTheme(this.getAttribute("data-settheme"));
-    renderSetDialog();
-    toast("主题已切换");
-  };
   var sos = document.querySelectorAll("[data-setspeed]");
   for (si=0;sos.length?si<sos.length:0;si++) sos[si].onclick = function(){
     localStorage.setItem("oc_fastms", this.getAttribute("data-setspeed"));
