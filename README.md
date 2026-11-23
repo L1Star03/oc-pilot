@@ -130,9 +130,9 @@ $env:PILOT_HOST="0.0.0.0"; $env:PILOT_TOKEN="your-secret"; node server.js
 
 ![settings](screenshots/settings.png)
 
-**手机横屏**
+**手机 App**（真机截图 · 横屏全屏 · demo 数据）
 
-![mobile](screenshots/mobile-landscape.png)
+![mobile](screenshots/mobile-app.png)
 
 > 截图使用 `demo/` 下的虚构示例任务数据。复现：`npm run demo:win`（Windows）或 `npm run demo`，然后 `node tools/shots.js`。
 
