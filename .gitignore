@@ -1,0 +1,9 @@
+tasks.json
+*.log
+node_modules/
+.DS_Store
+.gradle/
+build/
+local.properties
+*.apk
+!gradle/wrapper/gradle-wrapper.jar

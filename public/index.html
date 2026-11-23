@@ -1,0 +1,2715 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#141414">
+<title>OC-PILOT</title>
+<style>
+:root, [data-theme="orange"]{
+  --bp0:#141414; --bp1:#1a1a1a; --bp2:#202020;
+  --col-bg:#181818; --card-bg:#202020; --sub-bg:#1c1c1c;
+  --bar-bg:#191919; --code-bg:#101010; --inp-bg:#2a2a2a; --user-bg:rgba(224,135,61,.13); --user-bd:rgba(224,135,61,.35);
+  --grid:rgba(255,255,255,0);
+  --ln:#2b2b2b; --ln2:#3a3a3a;
+  --cy:#e0873d; --cyb:#c96f28; --tx:#d6d6d6; --dim:#9a9a9a; --mut:#6b6b6b;
+  --ok:#8fb882; --wn:#d9a94a; --er:#d26a5f;
+  --btn-bg:#2a2a2a; --btn-fg:#e0e0e0; --pri-bg:#c96f28; --pri-fg:#ffffff; --chip-bg:#262626;
+  --glowc:rgba(224,135,61,.40);
+}
+[data-theme="gold"]{
+  --bp0:#121210; --bp1:#181816; --bp2:#1e1e1b;
+  --col-bg:#161614; --card-bg:#1e1e1b; --sub-bg:#1a1a17;
+  --bar-bg:#171714; --code-bg:#0d0d0b; --inp-bg:#282825; --user-bg:rgba(212,175,55,.10); --user-bd:rgba(212,175,55,.32);
+  --grid:rgba(255,255,255,0);
+  --ln:#2a2a26; --ln2:#3a3a33;
+  --cy:#d4af37; --cyb:#a8862c; --tx:#d2d2cf; --dim:#98988f; --mut:#6b6b62;
+  --ok:#8ab07f; --wn:#d4af37; --er:#c76b60;
+  --btn-bg:#282825; --btn-fg:#dedacb; --pri-bg:#a8862c; --pri-fg:#ffffff; --chip-bg:#242420;
+  --glowc:rgba(212,175,55,.35);
+}
+[data-theme="gray"]{
+  --bp0:#171717; --bp1:#1d1d1d; --bp2:#232323;
+  --col-bg:#1a1a1a; --card-bg:#232323; --sub-bg:#1f1f1f;
+  --bar-bg:#1b1b1b; --code-bg:#121212; --inp-bg:#2c2c2c; --user-bg:rgba(255,255,255,.06); --user-bd:rgba(255,255,255,.18);
+  --grid:rgba(255,255,255,0);
+  --ln:#2d2d2d; --ln2:#3d3d3d;
+  --cy:#a8a8a8; --cyb:#4a4a4a; --tx:#c8c8c8; --dim:#8c8c8c; --mut:#686868;
+  --ok:#93ab90; --wn:#c2ab77; --er:#c08a84;
+  --btn-bg:#2b2b2b; --btn-fg:#dcdcdc; --pri-bg:#484848; --pri-fg:#ffffff; --chip-bg:#272727;
+  --glowc:rgba(255,255,255,.15);
+}
+[data-theme="vscode"]{
+  --bp0:#1e1e1e; --bp1:#252526; --bp2:#2a2a2a;
+  --col-bg:#232323; --card-bg:#2a2a2a; --sub-bg:#242424;
+  --bar-bg:#252526; --code-bg:#1a1a1a; --inp-bg:#3c3c3c; --user-bg:rgba(14,99,156,.22); --user-bd:#0e639c55;
+  --grid:rgba(255,255,255,0);
+  --ln:#303030; --ln2:#3c3c3c;
+  --cy:#3794ff; --cyb:#0e639c; --tx:#cccccc; --dim:#9a9a9a; --mut:#6e6e6e;
+  --ok:#4ec9a4; --wn:#d7ba63; --er:#f14c4c;
+  --btn-bg:#3a3d41; --btn-fg:#ffffff; --pri-bg:#0e639c; --pri-fg:#ffffff; --chip-bg:#333333;
+  --glowc:rgba(55,148,255,.30);
+}
+[data-theme="blueprint"]{
+  --bp0:#0c0e11; --bp1:#12151a; --bp2:#171b21;
+  --col-bg:rgba(17,20,25,.78); --card-bg:rgba(21,25,31,.92); --sub-bg:rgba(18,21,26,.5);
+  --bar-bg:#191919; --code-bg:#101010; --inp-bg:#2a2a2a; --user-bg:color-mix(in srgb, var(--cy) 10%, transparent); --user-bd:rgba(65,164,255,.28);
+  --grid:rgba(140,160,180,.05);
+  --ln:rgba(140,160,180,.14); --ln2:rgba(120,180,255,.35);
+  --cy:#41a4ff; --cyb:#1f7adb; --tx:#d5dae0; --dim:#8b95a1; --mut:#57606c;
+  --ok:#46c98d; --wn:#e0b25c; --er:#e0756f;
+  --btn-bg:#1b2333; --btn-fg:#9db4e8; --pri-bg:#1f7adb; --pri-fg:#ffffff; --chip-bg:color-mix(in srgb, var(--cy) 10%, transparent);
+  --glowc:rgba(224,135,61,.40);
+}*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--bp0);
+  background-image:
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:26px 26px;
+  color:var(--tx);
+  font-family:"Cascadia Code","Consolas","JetBrains Mono",Menlo,monospace;
+  font-size:13px;
+}
+button{font:inherit;border:none;cursor:pointer;background:none;color:inherit}
+input,textarea,select{font:inherit}
+a{color:var(--cy)}
+#app{display:flex;height:100%;flex-direction:column}
+header{display:flex;align-items:center;gap:8px;padding:8px 12px;padding-top:calc(8px + env(safe-area-inset-top));background:var(--bar-bg);border-bottom:1px solid var(--ln);flex:0 0 auto}
+header .brand{font-weight:700;font-size:14px;color:var(--cy);letter-spacing:2px;flex:0 0 auto}
+header .brand small{color:var(--mut);font-weight:400;letter-spacing:1px;font-size:10px}
+#dot{width:8px;height:8px;border-radius:50%;background:var(--er);flex:0 0 auto}
+#dot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+#bk{background:transparent;color:var(--cy);border:1px solid var(--ln);border-radius:6px;padding:5px 4px;font-size:11px;max-width:120px}
+.hbtn{background:var(--btn-bg);color:var(--btn-fg);border-radius:3px;padding:6px 10px;font-size:11.5px;flex:0 0 auto}
+.hbtn.pri{background:var(--cyb);color:#04121f;border-color:var(--cyb);font-weight:700}
+#errbar{display:none;background:#3b1f24;border-bottom:1px solid var(--er);color:var(--er);padding:6px 12px;font-size:11px;flex:0 0 auto}
+.qcard{background:var(--card-bg);border:1px solid var(--ln2);border-radius:4px;margin:8px 12px;padding:10px 12px}
+.qcard .qh{color:var(--dim);font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:6px;word-break:break-all}
+.qq{margin:8px 0;padding:8px;background:var(--sub-bg);border:1px dashed var(--ln);border-radius:8px}
+.qq .qqh{font-size:11px;color:var(--cy);letter-spacing:2px;margin-bottom:3px}
+.qq .qqt{font-size:13px;line-height:1.5;margin-bottom:8px}
+.qopt{display:block;width:100%;text-align:left;border:1px solid var(--ln2);border-radius:8px;padding:9px 11px;margin-bottom:6px;color:var(--tx);font-size:13px}
+.qopt.sel{border-color:var(--cy);background:var(--user-bg);box-shadow:none}
+.qopt .od{display:block;color:var(--mut);font-size:11px;margin-top:2px}
+.qopt.sel .od{color:var(--dim)}
+.qcustom{width:100%;background:var(--code-bg);border:1px dashed var(--ln2);border-radius:8px;color:var(--tx);padding:9px 11px;outline:none;font-size:13px;margin-top:2px}
+.qbtns{display:flex;gap:8px;margin-top:8px}
+.qbtns button{flex:1;padding:10px;border-radius:8px;font-size:13px}
+.q-submit{background:var(--cyb);color:#fff;font-weight:700}
+.q-reject{border:1px solid var(--er);color:var(--er)}
+.qhint{font-size:10px;color:var(--mut);margin-top:2px;letter-spacing:1px}
+#banner{flex:0 0 auto}
+.perm{background:var(--card-bg);border:1px solid var(--ln2);border-radius:4px;margin:8px 12px;padding:10px 12px}
+.perm .pt{color:var(--wn);font-size:12px;font-weight:700;margin-bottom:4px;word-break:break-all}
+.perm .pm{color:#b9a578;font-size:11px;word-break:break-all;max-height:90px;overflow:auto}
+.perm .btns{display:flex;gap:8px;margin-top:8px}
+.perm button{flex:1;padding:8px;border-radius:6px;font-size:12px}
+.p-yes{background:var(--pri-bg);color:var(--pri-fg);font-weight:700}.p-always{border:1px solid var(--ok);color:var(--ok)}.p-no{border:1px solid var(--er);color:var(--er)}
+main{flex:1;overflow:hidden;display:flex}
+#board{display:flex;gap:10px;height:100%;padding:10px;overflow-x:auto;overflow-y:hidden;flex:1;min-width:0;transition:opacity .18s,transform .18s}
+#board.fading{opacity:0;transform:scale(.98)}
+#board.gone{display:none}
+.col{display:flex;flex-direction:column;flex:1 1 0;min-width:200px;max-width:360px;background:var(--col-bg);border:1px solid var(--ln);border-radius:4px}
+.col.dragover{border:1px dashed var(--cy);box-shadow:none}
+.colh{display:flex;align-items:center;gap:6px;padding:8px 10px;font-size:11px;color:var(--cy);letter-spacing:2px;border-bottom:1px dashed var(--ln);user-select:none;flex:0 0 auto}
+.colh .cnt{border:1px solid var(--ln);border-radius:99px;padding:0 7px;font-size:10px;color:var(--dim)}
+.colh .clr{flex:1}
+.colh .arw{padding:2px 6px}
+.colbody{overflow-y:auto;flex:1;min-height:0;padding:6px}
+.tcard{background:var(--card-bg);border:1px solid var(--ln);border-radius:4px;padding:9px 10px;margin-bottom:7px;cursor:grab}
+.tcard:active{opacity:.7}
+.tcard .row1{display:flex;align-items:flex-start;gap:6px}
+.tcard .title{min-width:0;font-size:13px;line-height:1.4;font-weight:700;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.statline{margin-top:6px;font-size:10.5px;color:var(--mut);display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.sdot{width:7px;height:7px;border-radius:50%;flex:0 0 auto;background:var(--mut)}
+.sdot.run{background:var(--cy);animation:pulse 1.3s infinite}
+.sdot.rec{background:var(--wn)}
+.sdot.idle{background:var(--ok)}
+.sdot.warn{background:var(--er)}
+.sttxt{font-size:10px;letter-spacing:1px;flex:0 0 auto;color:var(--mut)}
+.sttxt.run{color:var(--cy)}
+.sttxt.rec,.sttxt.warn{color:var(--wn)}
+.sttxt.idle{color:var(--ok)}
+.stag{flex:0 0 auto;letter-spacing:1px}
+.stag.ok{color:var(--ok)}
+.chip{font-size:10px;padding:2px 7px;border-radius:3px;flex:0 0 auto;letter-spacing:1px;background:var(--chip-bg)}
+.chip.busy{color:var(--cy);animation:pulse 1.3s infinite}
+.chip.rec{color:var(--wn)}
+.chip.idle{color:var(--ok)}
+.chip.none{color:var(--mut)}
+@keyframes pulse{50%{opacity:.4}}
+.tcard .desc{color:var(--dim);font-size:11px;margin-top:4px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.bar{height:4px;background:var(--ln);border-radius:99px;margin-top:7px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cyb),var(--ok));border-radius:99px}
+.tmeta{color:var(--mut);font-size:10px;margin-top:6px;letter-spacing:1px}
+.btnrow{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+.abtn{background:var(--btn-bg);color:var(--btn-fg);border-radius:3px;padding:5px 9px;font-size:11px}
+.abtn.go{background:var(--pri-bg);color:var(--pri-fg);font-weight:700}
+.abtn.ok{background:color-mix(in srgb, var(--ok) 16%, transparent);color:var(--ok)}
+.abtn.warn{background:color-mix(in srgb, var(--wn) 14%, transparent);color:var(--wn)}
+.empty{color:var(--mut);text-align:center;padding:16px 8px;font-size:11px;letter-spacing:1px;line-height:2}
+.empty .big{color:var(--cy);border:1px dashed var(--ln2);border-radius:8px;padding:8px 14px;display:inline-block}
+#ovl{position:fixed;inset:0;background:rgba(3,12,22,.78);display:none;z-index:40}
+#ovl.open{position:static;background:none;display:flex;flex:1;min-width:0;inset:auto}
+#ovl.open.fs #side{display:none}
+#side{width:264px;flex:0 0 264px;border-right:1px solid var(--ln);background:var(--bar-bg);overflow-y:auto;overflow-x:hidden;animation:slideL .22s ease}
+@keyframes slideL{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+.sgrp{border-bottom:1px dashed var(--ln)}
+.sgh{display:flex;align-items:center;gap:6px;padding:9px 12px;font-size:11px;color:var(--dim);letter-spacing:2px;cursor:pointer;user-select:none}
+.sgh:active{opacity:.6}
+.sgh .cnt{border:1px solid var(--ln);border-radius:99px;padding:0 7px;font-size:10px;color:var(--mut)}
+.sgh .clr{flex:1}
+.srow{display:flex;align-items:center;gap:7px;padding:8px 12px 8px 20px;cursor:pointer;border-left:2px solid transparent}
+.srow:active{background:var(--user-bg)}
+.srow.on{background:var(--user-bg);border-left-color:var(--cy)}
+.srow .st{flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow .dotr{width:6px;height:6px;border-radius:50%;background:var(--cy);flex:0 0 auto}
+#ovbox{position:absolute;right:0;top:0;bottom:0;width:min(1100px,100%);background:var(--bp0);border-left:1px solid var(--ln2);display:flex;flex-direction:column;background-image:linear-gradient(rgba(140,160,180,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(140,160,180,.04) 1px,transparent 1px);background-size:26px 26px}
+#ovl.open #ovbox{position:static;width:auto;flex:1;min-width:0;animation:slideR .22s ease}
+@keyframes slideR{from{transform:translateX(28px);opacity:0}to{transform:none;opacity:1}}
+#ovh{display:flex;align-items:center;gap:8px;padding:8px 12px;padding-top:calc(8px + env(safe-area-inset-top));background:var(--bar-bg);border-bottom:1px solid var(--ln)}
+#ovtitle{flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--cy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#ovbody{flex:1;overflow-y:auto;min-height:0}
+#tabs{display:flex;background:var(--bar-bg);border-bottom:1px solid var(--ln);position:sticky;top:0;z-index:5}
+#tabs button{flex:1;padding:10px;color:var(--mut);border-bottom:2px solid transparent;letter-spacing:2px;font-size:12.5px}
+#tabs button.on{color:var(--cy);border-bottom-color:var(--cyb)}
+#ovfoot{display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px;padding-bottom:calc(8px + env(safe-area-inset-bottom));background:var(--bar-bg);border-top:1px solid var(--ln)}
+#inp{flex:1 1 160px;min-width:140px;background:var(--inp-bg);border:1px solid var(--ln);border-radius:8px;color:var(--tx);padding:9px 12px;outline:none;resize:none;font-size:15px;max-height:96px}
+#send{background:var(--pri-bg);color:var(--pri-fg);border-radius:3px;padding:0 14px;font-size:13px}
+#modelsel,#agentsel{max-width:130px;background:var(--inp-bg);border:1px solid var(--ln);border-radius:8px;color:var(--dim);font-size:11px;padding:4px}
+#newagent{background:var(--pri-bg);color:var(--pri-fg);font-weight:700;border-radius:8px;padding:0 10px;font-size:12.5px;white-space:nowrap}
+#abort{background:color-mix(in srgb, var(--er) 14%, transparent);color:var(--er);border-radius:3px;padding:0 10px;font-size:12.5px;white-space:nowrap;display:none}
+.msg{margin:10px 12px;padding:10px 12px;border-radius:8px;line-height:1.65;word-break:break-word;overflow:hidden;font-size:14px}
+.msg.user{background:var(--user-bg);border:1px solid var(--user-bd)}
+.msg.assistant{background:rgba(18,21,26,.75);border:1px solid var(--ln)}
+.msg .who{font-size:10px;color:var(--mut);margin-bottom:5px;letter-spacing:2px}
+.msg p{margin:4px 0}
+.msg h1,.msg h2,.msg h3,.msg h4{margin:10px 0 6px;line-height:1.3;color:var(--cy)}
+.msg h1{font-size:1.2em}.msg h2{font-size:1.1em}.msg h3{font-size:1em}
+.msg ul,.msg ol{padding-left:20px;margin:6px 0}
+.msg blockquote{border-left:3px solid var(--cyb);padding:2px 10px;margin:6px 0;color:var(--dim)}
+.msg hr{border:none;border-top:1px dashed var(--ln2);margin:8px 0}
+.cb{margin:7px 0;border-radius:6px;overflow:hidden;border:1px solid var(--ln)}
+.cb .cbh{font-size:10px;color:var(--dim);background:var(--bar-bg);padding:3px 9px;letter-spacing:1px}
+.cb pre{background:var(--code-bg);padding:9px;overflow-x:auto;font-size:12.5px;white-space:pre;margin:0;max-height:380px;overflow-y:auto;color:#c9d6e4}
+.msg code{font-size:.92em;background:var(--code-bg);padding:1px 5px;border-radius:4px;color:#b8d4f0}
+.tw{overflow-x:auto;margin:7px 0;border:1px solid var(--ln);border-radius:6px}
+.msg table{border-collapse:collapse;font-size:.9em;min-width:100%}
+.msg th,.msg td{border:1px solid var(--ln);padding:5px 9px;text-align:left;white-space:nowrap}
+.msg th{background:var(--bar-bg);color:var(--cy);letter-spacing:1px}
+.tool{margin:8px 12px;padding:8px 10px;border-radius:6px;background:var(--sub-bg);border:1px dashed var(--ln);font-size:12.5px}
+.tool .t1{display:flex;align-items:center;gap:7px}
+.tool .tn{color:var(--cy);font-weight:700;flex:0 0 auto}
+.tool .tt{color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.tool .ts{margin-left:auto;font-size:10px;flex:0 0 auto;letter-spacing:1px}
+.tool .ts.completed{color:var(--ok)}.tool .ts.running{color:var(--cy)}.tool .ts.pending{color:var(--wn)}.tool .ts.error{color:var(--er)}
+.mseg{margin:4px 0}
+.mseg.final{border-left:3px solid var(--cy);background:rgba(255,255,255,.035);padding:9px 12px;border-radius:0 3px 3px 0;margin-top:8px}
+.sub{position:relative;margin:8px 0 2px 24px;padding:7px 10px;border:1px dashed var(--ln2);border-radius:7px;background:rgba(18,21,26,.55);font-size:12px}
+.sub::before{content:"";position:absolute;left:-16px;top:-10px;height:60%;width:0;border-left:1px dashed var(--ln2)}
+.sub .t1{display:flex;align-items:center;gap:7px}
+.sub .tn{color:var(--cy);font-weight:700;flex:0 0 auto}
+.sub .tt{color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.sub .ts{margin-left:auto;font-size:10px;flex:0 0 auto;letter-spacing:1px}
+.sub .ts.completed{color:var(--ok)}.sub .ts.running{color:var(--cy)}.sub .ts.pending{color:var(--wn)}.sub .ts.error{color:var(--er)}
+.sub.agent{border-color:color-mix(in srgb, var(--ok) 45%, transparent)}
+.sub.agent .tn{color:var(--ok)}
+.sub.running{border-color:var(--cy);animation:glow 1.6s infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 4px var(--user-bg)}50%{box-shadow:0 0 14px var(--glowc)}}
+.cwrap{position:relative;margin-top:8px;padding-left:18px}
+.cwrap::before{content:"";position:absolute;left:5px;top:2px;bottom:4px;border-left:1px dashed var(--ln2)}
+.cwrap::after{content:"";position:absolute;left:2px;width:7px;height:7px;border-radius:50%;background:var(--cy);box-shadow:0 0 10px var(--cy);animation:flowdown 1.5s linear infinite}
+@keyframes flowdown{0%{top:0;opacity:0}15%{opacity:1}85%{opacity:1}100%{top:calc(100% - 7px);opacity:0}}
+.csub{position:relative;display:flex;gap:6px;align-items:center;border:1px dashed var(--ln2);border-radius:6px;padding:4px 8px;font-size:11px;margin-bottom:4px;background:var(--sub-bg);color:var(--dim)}
+.csub::before{content:"";position:absolute;left:-13px;top:50%;width:12px;border-top:1px dashed var(--ln2)}
+.csub .cn{color:var(--cy);font-weight:700;flex:0 0 auto}
+.csub .ct{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.csub.agent{border-color:color-mix(in srgb, var(--ok) 45%, transparent)}
+.csub.agent .cn{color:var(--ok)}
+.csub.running{border-color:var(--ln2)}
+.csub.more{border:none;background:none;color:var(--mut);padding:1px 8px}
+.csum{margin-top:8px;font-size:10.5px;color:var(--mut);letter-spacing:1px;border:1px dashed var(--ln);border-radius:99px;padding:3px 10px;display:inline-block;cursor:pointer;user-select:none}
+.csum:active{opacity:.6}
+.croles{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.crole{font-size:10px;color:var(--ok);border:1px solid color-mix(in srgb, var(--ok) 30%, transparent);border-radius:99px;padding:2px 8px}
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:10px 12px}
+.acard{border:1px solid var(--ln);border-radius:4px;padding:10px;background:var(--card-bg);display:flex;flex-direction:column;gap:7px}
+.acard.warn{border-left-color:var(--wn)}
+.acard.done{border-left-color:var(--ok)}
+.acard .ah{display:flex;align-items:center;gap:7px}
+.acard .arole{font-weight:700;font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--cy)}
+.acard .adoing{font-size:11.5px;color:var(--dim);line-height:1.45;background:var(--sub-bg);border:1px dashed var(--ln);border-radius:6px;padding:6px 8px;word-break:break-all}
+.acard .adoing b{color:var(--cy)}
+.acard .asnip{font-size:11px;color:var(--mut);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.acard .abtns{display:flex;gap:6px}
+.acard .abtns button{flex:1}
+.acard .axbody{display:none;border-top:1px dashed var(--ln);padding-top:7px;font-size:11.5px}
+.acard.xopen .axbody{display:block}
+.acard .axrep{color:var(--dim);line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow-y:auto;background:var(--sub-bg);border-radius:6px;padding:7px 9px;margin-bottom:6px}
+.acard .axtodo{padding:2px 0}
+.acard .axmeta{color:var(--mut);font-size:10.5px;letter-spacing:1px;margin-top:4px}
+.aout{font-size:10.5px;color:#8fb8d8;background:var(--code-bg);border:1px solid var(--ln);border-radius:5px;padding:5px 7px;max-height:92px;overflow:hidden;white-space:pre-wrap;word-break:break-all;margin-top:6px;position:relative}
+.aout::after{content:"▌";color:var(--cy);animation:pulse 1s infinite;position:absolute;right:6px;bottom:3px}
+#mwin{position:fixed;right:14px;bottom:14px;width:min(500px,94vw);max-height:76vh;background:var(--bp1);border:1px solid var(--ln2);border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.48);display:none;flex-direction:column;z-index:70;overflow:hidden}
+#mwh{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bar-bg);border-bottom:1px solid var(--ln);cursor:move;user-select:none;flex:0 0 auto}
+#mwh .mt{flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--cy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mwh .dotr{width:6px;height:6px;border-radius:50%;background:var(--cy)}
+#mwb{flex:1;overflow-y:auto;min-height:0}
+.sub.running::after{content:none}
+@keyframes subflow{0%{top:-6px;opacity:0}20%{opacity:1}100%{top:80%;opacity:0}}
+.sub .fullout{display:none;margin:6px 0 0;background:var(--code-bg);border-radius:5px;padding:7px 9px;font-size:11px;max-height:260px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;color:#9db8cf;border-top:1px dashed var(--ln)}
+.sub.xopen .fullout{display:block}
+.rvbtn{background:none;border:1px solid var(--ln);color:var(--mut);border-radius:4px;font-size:10px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+.rvbtn:hover{color:var(--wn);border-color:var(--wn)}
+.accflow{display:flex;align-items:center;padding:6px 14px;overflow-x:auto}
+.accstep{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:88px;flex:0 0 auto}
+.acci{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700}
+.acci.pass{background:color-mix(in srgb, var(--ok) 18%, transparent);color:var(--ok)}
+.acci.current{background:var(--pri-bg);color:var(--pri-fg);animation:pulse 1.5s infinite}
+.acci.fail{background:color-mix(in srgb, var(--er) 16%, transparent);color:var(--er)}
+.acci.pending{background:var(--chip-bg);color:var(--mut)}
+.accstep.human .acci{border:1px dashed var(--ln2)}
+.accn{font-size:11.5px;color:var(--tx);white-space:nowrap}
+.accr{font-size:10px;color:var(--mut)}
+.accline{height:2px;flex:1 1 20px;min-width:14px;background:var(--ln)}
+.accline.done{background:var(--ok)}
+.acchist{display:flex;gap:8px;align-items:flex-start;padding:7px 14px;border-bottom:1px dashed var(--ln);font-size:11.5px}
+.acchist .hok{color:var(--ok);flex:0 0 auto}
+.acchist .hfail{color:var(--er);flex:0 0 auto}
+.acchist .hmeta{color:var(--mut);flex:0 0 auto;font-size:10.5px}
+.acchist .hout{color:var(--dim);word-break:break-all;max-height:60px;overflow:hidden}
+.accdot{letter-spacing:2px;font-size:10px}
+.todo{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-bottom:1px dashed var(--ln);font-size:13.5px;line-height:1.5}
+.todo .st{flex:0 0 auto;width:18px;text-align:center}
+.todo.completed .ct{color:var(--mut);text-decoration:line-through}
+.todo.in_progress .ct{color:var(--cy)}
+.dfile{padding:9px 14px;border-bottom:1px dashed var(--ln);font-size:12px;word-break:break-all;display:flex;gap:8px}
+.dfile .add{color:var(--ok)}.dfile .del{color:var(--er)}
+.crumb{display:flex;flex-wrap:wrap;gap:2px;padding:10px 12px;font-size:12px;color:var(--cy)}
+.crumb span.d{padding:2px 5px;border-radius:4px;border:1px solid transparent}
+.crumb span.d:active{border-color:var(--ln2)}
+.frow{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px dashed var(--ln);font-size:12.5px}
+.frow .fi{flex:0 0 auto}
+.frow .fn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frow .fs{color:var(--mut);font-size:10px;flex:0 0 auto}
+.frow .go{color:var(--cy);font-size:11px;padding:4px 9px;border:1px solid var(--ln2);border-radius:5px;flex:0 0 auto}
+.imgprev{max-width:100%;border-radius:8px;margin:6px 14px;display:block;border:1px solid var(--ln)}
+.upbar{display:flex;gap:8px;padding:8px 12px;position:sticky;bottom:0;background:var(--bar-bg);border-top:1px solid var(--ln)}
+.upbar button{flex:1;padding:10px;border-radius:8px;border:1px solid var(--ln2);color:var(--cy);font-size:12px}
+#dlg,#idlg,#tdlg{position:fixed;inset:0;background:rgba(3,12,22,.8);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+#dlgbox,#idlgbox,#tdlgbox{background:var(--bp1);border:1px solid var(--ln2);border-radius:10px;padding:16px;width:min(520px,100%);display:flex;flex-direction:column;gap:10px;box-shadow:0 0 30px rgba(111,195,255,.15)}
+#dlgbox h3,#idlgbox h3,#tdlgbox h3{font-size:13px;color:var(--cy);letter-spacing:2px}
+#dlgbox input,#dlgbox textarea,#tdlgbox input{background:#04121f;border:1px solid var(--ln);border-radius:8px;color:var(--tx);padding:9px 12px;outline:none;font-size:13px}
+#dlgbox textarea{min-height:70px;resize:vertical}
+.btns{display:flex;gap:8px;justify-content:flex-end}
+.btns button{padding:8px 18px;border-radius:7px}
+#dcreate,#iall{background:var(--pri-bg);color:var(--pri-fg);font-weight:700}
+#dcancel,#iclose{background:var(--btn-bg);color:var(--btn-fg)}
+#fdlg{position:fixed;inset:0;background:rgba(3,6,10,.8);display:none;align-items:center;justify-content:center;z-index:55;padding:16px}
+#fdlgbox{background:var(--bp1);border:1px solid var(--ln2);border-radius:10px;padding:16px;width:min(520px,100%);display:flex;flex-direction:column;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,.42)}
+#fdlgbox h3{font-size:13px;color:var(--cy);letter-spacing:2px}
+#ftext{background:var(--code-bg);border:1px solid var(--ln);border-radius:8px;color:var(--tx);padding:9px 12px;outline:none;font-size:13.5px;min-height:80px;resize:vertical}
+#fcancel{background:var(--btn-bg);color:var(--btn-fg)}
+#fplan{border:1px solid var(--wn);color:var(--wn)}
+#fexec{background:var(--pri-bg);color:var(--pri-fg);font-weight:700}
+#adlg{position:fixed;inset:0;background:rgba(3,6,10,.8);display:none;align-items:center;justify-content:center;z-index:55;padding:16px}
+#adlgbox{background:var(--bp1);border:1px solid var(--ln2);border-radius:10px;padding:16px;width:min(520px,100%);display:flex;flex-direction:column;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,.42)}
+#adlgbox h3{font-size:13px;color:var(--cy);letter-spacing:2px}
+#adlgbox .btns{display:flex;gap:8px;justify-content:flex-end}
+#adlgbox .btns button{padding:8px 18px;border-radius:7px}
+#acancel{background:var(--btn-bg);color:var(--btn-fg)}
+#sdlg{position:fixed;inset:0;background:rgba(3,6,10,.8);display:none;align-items:center;justify-content:center;z-index:55;padding:16px}
+#sdlgbox{background:var(--bp1);border:1px solid var(--ln2);border-radius:10px;padding:16px;width:min(520px,100%);max-height:82vh;display:flex;flex-direction:column;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,.42)}
+#sdlgbox h3{font-size:13px;color:var(--cy);letter-spacing:2px}
+#sdlgbox .btns{display:flex;gap:8px;justify-content:flex-end}
+#sclose{background:var(--btn-bg);color:var(--btn-fg);padding:8px 18px;border-radius:3px}
+.sethead{font-size:11px;color:var(--mut);letter-spacing:2px;margin:6px 0 4px}
+.setopt{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--ln);border-radius:8px;margin-bottom:5px;cursor:pointer;font-size:12.5px}
+.setopt.on{border-color:var(--cy);background:color-mix(in srgb, var(--cy) 10%, transparent)}
+.setopt .sn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.setopt .sp{color:var(--mut);font-size:10.5px;flex:0 0 auto}
+.setopt .chk{color:var(--cy);flex:0 0 auto}
+.qtag{color:var(--wn);font-size:10px;letter-spacing:1px}
+#ilist{overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:60px;max-height:55vh}
+.irow{display:flex;align-items:center;gap:8px;background:var(--sub-bg);border:1px solid var(--ln);border-radius:7px;padding:8px 10px}
+.irow .it{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.irow .im{color:var(--mut);font-size:10px;flex:0 0 auto}
+.irow .go{color:var(--cy);font-size:11px;padding:4px 9px;border:1px solid var(--ln2);border-radius:5px;flex:0 0 auto}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:60px;background:var(--bp2);border:1px solid var(--ln2);color:var(--tx);padding:8px 18px;border-radius:99px;font-size:12px;opacity:0;transition:opacity .3s;z-index:80;max-width:85vw;pointer-events:none}
+@media (max-width:1000px){
+  .col{min-width:180px;max-width:none;flex:0 0 42vw}
+  header .brand small{display:none}
+  #side{width:200px;flex-basis:200px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">◤ OC-PILOT <small id="ver">// v1.3.4</small></div>
+    <div id="dot"></div>
+    <select id="bk"></select>
+    <span style="flex:1"></span>
+    <button class="hbtn" id="impBtn">📥 导入会话</button>
+    <button class="hbtn" id="fsBtn">📁 文件</button>
+    <button class="hbtn pri" id="newBtn">＋ 新任务</button>
+  </header>
+  <div id="errbar"></div>
+  <div id="qbanner"></div>
+  <div id="banner"></div>
+  <main>
+    <div id="board"></div>
+    <div id="ovl"><div id="side"></div><div id="ovbox">
+      <div id="ovh">
+        <button class="hbtn" id="ovclose">‹ 返回</button>
+        <div id="ovtitle"></div>
+        <button class="hbtn" id="ovabort" style="display:none;border-color:var(--er);color:var(--er)">■ 中断</button>
+        <button class="hbtn" id="ovfork" style="display:none">⑂ 分叉</button>
+        <button class="hbtn" id="ovset" style="display:none">⚙ <span id="ovsetm">默认</span></button>
+        <button class="hbtn" id="ovmulti" style="display:none;border-color:var(--ok);color:var(--ok)">⚡转协同</button>
+        <button class="hbtn" id="ovedit">编辑</button>
+        <button class="hbtn" id="ovdel">删除</button>
+      </div>
+      <div id="ovbody"></div>
+      <div id="ovfoot">
+        <textarea id="inp" rows="1" placeholder="发送指令…"></textarea>
+        <button id="send">发送</button>
+        <button id="newagent" style="background:var(--pri-bg);color:var(--pri-fg);font-weight:700;border-radius:8px;padding:0 10px;font-size:12.5px;white-space:nowrap">＋Agent</button>
+        <button id="abort" style="border-color:var(--er);color:var(--er);border-radius:8px;padding:0 10px;font-size:12.5px;white-space:nowrap;display:none">■ 中断</button>
+      </div>
+    </div></div>
+  </main>
+</div>
+<div id="dlg">
+  <div id="dlgbox">
+    <h3>◤ 新建任务</h3>
+    <input id="dtitle" placeholder="任务标题（例如：给 roadeye 加启动页）">
+    <textarea id="ddesc" placeholder="任务描述 / 验收要求（可选，作为初始指令发给 AI）"></textarea>
+    <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dim)">
+      <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="dmulti">多AGENT协同</label>
+      <select id="dcount" style="background:var(--code-bg);border:1px solid var(--ln);border-radius:6px;color:var(--tx);padding:4px 6px">
+        <option value="2">2 路</option><option value="3" selected>3 路</option><option value="4">4 路</option>
+      </select>
+      <span>并行分工：实现 / 测试 / 审查 / 文档</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dim)">
+      验收计划
+      <select id="acced" style="background:var(--code-bg);border:1px solid var(--ln);border-radius:6px;color:var(--tx);padding:4px 6px">
+        <option value="none">无</option>
+        <option value="normal">常规（构建自检+人工）</option>
+        <option value="rl">RL训练（4轮）</option>
+        <option value="custom">自定义(JSON)</option>
+      </select>
+    </div>
+    <textarea id="accjson" placeholder="自定义验收计划 JSON：{&quot;rounds&quot;:[{&quot;name&quot;:..,&quot;cmd&quot;:..,&quot;intervalMin&quot;:..,&quot;maxRetry&quot;:..},{&quot;mode&quot;:&quot;human&quot;}]}" style="display:none;background:var(--code-bg);border:1px solid var(--ln);border-radius:6px;color:var(--tx);padding:8px;font-size:11px;min-height:70px;font-family:Consolas,monospace"></textarea>
+    <div class="btns"><button id="dcancel">取消</button><button id="dcreate">创建</button></div>
+  </div>
+</div>
+<div id="idlg">
+  <div id="idlgbox">
+    <h3>◤ 导入已有会话</h3>
+    <div id="ilist"></div>
+    <div class="btns"><button id="iall">全部导入</button><button id="iclose">关闭</button></div>
+  </div>
+</div>
+<div id="fdlg">
+  <div id="fdlgbox">
+    <h3 id="ftitle">◤ 验收反馈</h3>
+    <textarea id="ftext" placeholder="验收意见（会随打回消息发给 AI，可留空）"></textarea>
+    <div class="btns"><button id="fcancel">取消</button><button id="fplan">↙ 重新计划</button><button id="fexec">↩ 打回执行</button></div>
+  </div>
+</div>
+<div id="adlg">
+  <div id="adlgbox">
+    <h3>◤ 开新智能体</h3>
+    <div id="adesc" style="font-size:12.5px;color:var(--dim);line-height:1.7"></div>
+    <div style="font-size:11.5px;color:var(--mut)">确认后在对话页/分工页能看到新智能体的执行情况</div>
+    <div class="btns"><button id="acancel">取消</button><button id="aok" style="background:var(--pri-bg);color:var(--pri-fg);font-weight:700">开新智能体</button></div>
+  </div>
+</div>
+<div id="sdlg">
+  <div id="sdlgbox">
+    <h3>◤ 设置</h3>
+    <div id="settheme"></div>
+    <div id="setspeed"></div>
+    <div id="setagents"></div>
+    <div id="setmodels" style="max-height:38vh;overflow-y:auto"></div>
+    <div class="btns"><button id="sclose">完成</button></div>
+  </div>
+</div>
+<div id="tdlg">
+  <div id="dlgbox" style="width:min(420px,100%)">
+    <h3>◤ 访问令牌</h3>
+    <div style="font-size:12px;color:var(--dim);line-height:1.6">服务器设置了 PILOT_TOKEN，请输入访问令牌</div>
+    <input id="tokin" type="password" placeholder="PILOT_TOKEN" style="background:var(--code-bg);border:1px solid var(--ln);border-radius:6px;color:var(--tx);padding:10px 12px;outline:none;font-size:14px">
+    <div class="btns"><button id="tokok" style="background:var(--pri-bg);color:var(--pri-fg);font-weight:700">进入</button></div>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="dbgbar" style="position:fixed;left:8px;bottom:4px;font-size:10px;color:var(--mut);z-index:90;pointer-events:none;max-width:70vw;overflow:hidden;white-space:nowrap;opacity:.75"></div>
+<div id="mwin">
+  <div id="mwh"><span class="dotr" id="mwdot" style="display:none"></span><div class="mt" id="mwtitle">worker</div><button class="hbtn" id="mwclose">✕</button></div>
+  <div id="mwb"></div>
+</div>
+<script>
+var S = { backend: localStorage.getItem("oc_backend") || "4096", backends: [], tasks: {}, statuses: {}, perms: {}, questions: {}, sessions: {}, curTask: null, curTab: "chat", msgs: [], todos: [], diffs: [], fsMode: false, prevUpdated: {}, liveUntil: {}, editing: null, queue: {}, liveTools: {}, workerInfo: {}, toolLen: {}, stuckSince: {}, miniSid: null, cardSubOpen: {}, dbg: [], wasBusy: {}, resumed: {}, woken: {}, roleMig: {} };
+function dbgLog(msg){
+  S.dbg.unshift(new Date().toTimeString().slice(0,8) + " " + msg);
+  if (S.dbg.length > 6) S.dbg.pop();
+  var d = $("dbgbar");
+  if (d) d.textContent = S.dbg.join("  |  ");
+}
+var $ = function(id){ return document.getElementById(id); };
+(function(){
+  var _f = window.fetch;
+  window.fetch = function(u, o){
+    o = o || {};
+    try {
+      var tok = localStorage.getItem("oc_token");
+      if (tok && typeof u === "string" && u.charAt(0) === "/") {
+        o.headers = Object.assign({}, o.headers || {}, { "x-pilot-token": tok });
+      }
+    } catch(e){}
+    return _f.call(window, u, o).then(function(r){
+      if (r.status === 401) { var d = $("tdlg"); if (d && d.style.display !== "flex") d.style.display = "flex"; }
+      return r;
+    });
+  };
+})();
+function tokQS(url){
+  try { var tok = localStorage.getItem("oc_token"); if (!tok) return url; return url + (url.indexOf("?") >= 0 ? "&" : "?") + "k=" + encodeURIComponent(tok); } catch(e){ return url; }
+}
+function toast(t){ var el=$("toast"); el.textContent=t; el.style.opacity=1; clearTimeout(el._t); el._t=setTimeout(function(){el.style.opacity=0},2400); }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function fmtTime(t){ if(!t) return ""; var d=new Date(t); return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2); }
+function fmtRel(t){
+  if (!t) return "";
+  var d = Date.now() - t;
+  if (d < 60000) return Math.max(1, Math.floor(d/1000)) + "秒前";
+  if (d < 3600000) return Math.floor(d/60000) + "分前";
+  if (d < 86400000) return Math.floor(d/3600000) + "时前";
+  if (d < 172800000) return "昨天" + fmtTime(t);
+  var dt = new Date(t);
+  return (dt.getMonth()+1) + "-" + dt.getDate() + " " + fmtTime(t);
+}
+function fmtSize(n){ if(n==null) return ""; if(n>1048576) return (n/1048576).toFixed(1)+"M"; if(n>1024) return (n/1024).toFixed(0)+"K"; return n+"B"; }
+function toolTail(st){
+  try {
+    var o = st && st.state && st.state.output;
+    if (!o) return "";
+    return String(o).replace(/\s+$/,"").split("\n").slice(-5).join("\n").slice(-420);
+  } catch(e){ return ""; }
+}
+function stOf(sid){ var o = S.statuses[sid] || {}; return o.type || o.status || ""; }
+function activityOf(sid, sess){
+  if (stOf(sid) === "busy") return "run";
+  if (Date.now() < (S.liveUntil[sid] || 0)) return "run";
+  var s = sess || S.sessions[sid];
+  var upd = (s && s.time && s.time.updated) || 0;
+  if (upd > Date.now() - 5*60*1000) return "recent";
+  return "idle";
+}
+
+function api(path, opts){
+  opts = opts || {};
+  opts.headers = Object.assign({ "Content-Type": "application/json", "x-pilot-backend": S.backend }, opts.headers || {});
+  return fetch("/api" + path, opts).then(function(r){
+    if (r.status === 204) return null;
+    return r.text().then(function(tx){ try { return JSON.parse(tx); } catch(e){ return tx; } });
+  });
+}
+function tApi(method, body, id){
+  var url = id ? "/tasks/" + id : "/tasks";
+  return fetch(url, { method: method, headers: { "Content-Type": "application/json", "x-pilot-backend": S.backend }, body: body ? JSON.stringify(body) : null })
+    .then(function(r){ return r.json(); });
+}
+
+var FLOW = {
+  todo:   { icon:"▣", name:"待办 TODO",   next:["plan","exec"] },
+  plan:   { icon:" ◙", name:"计划 PLAN",   next:["exec","todo"] },
+  exec:   { icon:"▶",  name:"执行 EXEC",   next:["review","todo"] },
+  review: { icon:"◎",  name:"验收 REVIEW", next:["done","exec","plan"] },
+  done:   { icon:"✓",  name:"完成 DONE",   next:["review"] }
+};
+var NEXTLBL = { plan:"◙ 计划", exec:"▶ 执行", todo:"↩ 待办", review:"◎ 验收", done:"✓ 通过", rework:"✎ 打回…" };
+function mdRender(src){
+  src = String(src||"").replace(/\r\n/g,"\n");
+  var blocks = [];
+  src = src.replace(/```([a-zA-Z0-9+#._-]*)\n?([\s\S]*?)```/g, function(m, lang, code){
+    blocks.push("<div class='cb'><div class='cbh'>"+esc(lang||"code")+"</div><pre>"+esc(code.replace(/\n$/,""))+"</pre></div>");
+    return "\u0001B"+(blocks.length-1)+"\u0001";
+  });
+  function inline(t){
+    t = esc(t);
+    t = t.replace(/`([^`]+)`/g, "<code>$1</code>");
+    t = t.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+    t = t.replace(/(^|[\s(（])\*([^*\s][^*]*?)\*/g, "$1<i>$2</i>");
+    t = t.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, "<a href='$2'>$1</a>");
+    return t;
+  }
+  function splitRow(row){ return row.trim().replace(/^\|/,"").replace(/\|$/,"").split("|").map(function(c){ return c.trim(); }); }
+  var lines = src.split("\n");
+  var html = "", i = 0, para = [];
+  function flush(){ if (para.length) { html += "<p>"+para.map(inline).join("<br>")+"</p>"; para = []; } }
+  while (i < lines.length){
+    var L = lines[i];
+    var bm = L.match(/^\u0001B(\d+)\u0001\s*$/);
+    if (bm){ flush(); html += blocks[+bm[1]]; i++; continue; }
+    if (/^\s*\|/.test(L) && i+1 < lines.length && /^\s*\|?[\s:|-]+(\|[\s:|-]*)*\|?\s*$/.test(lines[i+1]) && lines[i+1].indexOf("-") >= 0){
+      flush();
+      var head = splitRow(L); i += 2; var body = [];
+      while (i < lines.length && /^\s*\|/.test(lines[i])) { body.push(splitRow(lines[i])); i++; }
+      html += "<div class='tw'><table><thead><tr>";
+      for (var c = 0; c < head.length; c++) html += "<th>"+inline(head[c])+"</th>";
+      html += "</tr></thead><tbody>";
+      for (var r = 0; r < body.length; r++) {
+        html += "<tr>";
+        for (c = 0; c < head.length; c++) html += "<td>"+inline(body[r][c]||"")+"</td>";
+        html += "</tr>";
+      }
+      html += "</tbody></table></div>";
+      continue;
+    }
+    var h = L.match(/^(#{1,6})\s+(.*)$/);
+    if (h){ flush(); var lv = Math.min(h[1].length,4); html += "<h"+lv+">"+inline(h[2])+"</h"+lv+">"; i++; continue; }
+    if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(L)){ flush(); html += "<hr>"; i++; continue; }
+    if (/^\s*>\s?/.test(L)){
+      flush(); var q = [];
+      while (i < lines.length && /^\s*>\s?/.test(lines[i])) { q.push(lines[i].replace(/^\s*>\s?/,"")); i++; }
+      html += "<blockquote>"+mdRender(q.join("\n"))+"</blockquote>";
+      continue;
+    }
+    if (/^\s*[-*+]\s+/.test(L)){
+      flush(); var it = [];
+      while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) { it.push(lines[i].replace(/^\s*[-*+]\s+/,"")); i++; }
+      html += "<ul>"+it.map(function(x){ return "<li>"+inline(x)+"</li>"; }).join("")+"</ul>";
+      continue;
+    }
+    if (/^\s*\d+[.)]\s+/.test(L)){
+      flush(); var it2 = [];
+      while (i < lines.length && /^\s*\d+[.)]\s+/.test(lines[i])) { it2.push(lines[i].replace(/^\s*\d+[.)]\s+/,"")); i++; }
+      html += "<ol>"+it2.map(function(x){ return "<li>"+inline(x)+"</li>"; }).join("")+"</ol>";
+      continue;
+    }
+    if (L.indexOf("\u0001") >= 0 && !bm) { flush(); html += L.replace(/\u0001B(\d+)\u0001/g, function(m2,n){ return blocks[+n]; }); i++; continue; }
+    if (L.trim() === ""){ flush(); i++; continue; }
+    para.push(L);
+    i++;
+  }
+  flush();
+  return html;
+}
+
+function setConn(ok){ $("dot").className = ok ? "ok" : ""; }
+function findPermIDs(obj, found){
+  if (!obj || typeof obj !== "object") return;
+  if (Array.isArray(obj)) { for (var i=0;i<obj.length;i++) findPermIDs(obj[i], found); return; }
+  if (obj.permissionID) found.push({ id: obj.permissionID, sessionID: obj.sessionID, title: obj.title || (obj.metadata && obj.metadata.title), metadata: obj.metadata, status: obj.status });
+  for (var k in obj) findPermIDs(obj[k], found);
+}
+function handleEvent(raw){
+  var ev; try { ev = JSON.parse(raw); } catch(e){ return; }
+  var et = String(ev.type || "");
+  var pr = ev.properties || ev;
+  if (et === "question.v2.asked" && pr.id && pr.questions) {
+    S.questions[pr.id] = { id: pr.id, sessionID: pr.sessionID, questions: pr.questions };
+    renderQuestions();
+  } else if ((et === "question.v2.replied" || et === "question.v2.rejected") && pr.requestID) {
+    if (S.questions[pr.requestID]) { delete S.questions[pr.requestID]; renderQuestions(); }
+  }
+  var found = []; findPermIDs(ev, found);
+  for (var i=0;i<found.length;i++){
+    var f = found[i];
+    if (["completed","resolved","rejected","approved"].indexOf(f.status) >= 0) delete S.perms[f.id];
+    else S.perms[f.id] = f;
+  }
+  markDirty();
+}
+var dirtyTimer = null;
+function markDirty(){
+  if (dirtyTimer) return;
+  dirtyTimer = setTimeout(function(){ dirtyTimer = null; refreshAll(); }, 900);
+}
+var sseCtl = null;
+S.lastSseOk = Date.now();
+async function sseLoop(){
+  while (sseCtl && !sseCtl.signal.aborted) {
+    try {
+      var h = { "x-pilot-backend": S.backend };
+      var connectTimer = setTimeout(function(){ if (sseCtl) { try { sseCtl.abort("timeout"); } catch(e){} } }, 15000);
+      var resp = await fetch("/api/event", { headers: h, signal: sseCtl.signal });
+      clearTimeout(connectTimer);
+      setConn(true);
+      S.lastSseOk = Date.now();
+      var reader = resp.body.getReader();
+      var dec = new TextDecoder();
+      var buf = "";
+      while (true){
+        var r = await reader.read();
+        if (r.done) break;
+        S.lastSseOk = Date.now();
+        buf += dec.decode(r.value, { stream: true });
+        var idx;
+        while ((idx = buf.indexOf("\n\n")) >= 0){
+          var chunk = buf.slice(0, idx); buf = buf.slice(idx + 2);
+          var dl = chunk.split("\n").filter(function(l){ return l.indexOf("data:") === 0; }).map(function(l){ return l.slice(5).trim(); });
+          if (dl.length) handleEvent(dl.join("\n"));
+        }
+      }
+    } catch(e){}
+    setConn(false);
+    if (sseCtl && sseCtl.signal.aborted) return;
+    for (var w = 0; w < 10 && sseCtl && !sseCtl.signal.aborted; w++) await sleep(300);
+  }
+}
+function sseStart(){ if (sseCtl) { try { sseCtl.abort("restart"); } catch(e){} } S.lastSseOk = Date.now(); sseCtl = new AbortController(); sseLoop(); }
+function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+async function migrateRoles(){
+  for (var id in S.tasks) {
+    var t = S.tasks[id];
+    if (S.roleMig[id]) continue;
+    S.roleMig[id] = 1;
+    var ws = t.workers || [];
+    var changed = false;
+    for (var i=0;i<ws.length;i++) {
+      if (ws[i].role !== "增援") continue;
+      try {
+        var msgs = (await api("/session/" + ws[i].sessionID + "/message?limit=200")) || [];
+        var inst = "";
+        for (var k=0;k<Math.min(6,msgs.length);k++) {
+          if ((msgs[k].info||{}).role !== "user") continue;
+          var tx = ((msgs[k].parts)||[]).filter(function(p){return p.type==="text";}).map(function(p){return p.text;}).join("\n");
+          var m2 = tx.match(/(?:你的指令|新指令|优先处理)[：:]\s*\n?([\s\S]{2,60})/);
+          if (m2) { inst = m2[1].replace(/\s+/g," ").trim().slice(0, 16); break; }
+        }
+        if (inst) { ws[i].role = "增援·" + inst; changed = true; }
+      } catch(e){}
+    }
+    if (changed) tApi("PATCH", { workers: ws }, id);
+  }
+}
+var RESUME_MSG = "（系统唤醒）检测到上次执行被电脑休眠/中断打断，请检查已完成的部分，从断点继续完成剩余任务，不要重做已完成的步骤。";
+function taskLinkedSids(){
+  var set = {};
+  for (var id in S.tasks) {
+    var t = S.tasks[id];
+    if (t.sessionID) set[t.sessionID] = 1;
+    var ws = t.workers || [];
+    for (var i=0;i<ws.length;i++) set[ws[i].sessionID] = 1;
+    if (t.mergeSid) set[t.mergeSid] = 1;
+  }
+  return set;
+}
+async function checkInterruptedAndResume(sid){
+  try {
+    var msgs = (await api("/session/" + sid + "/message?limit=1")) || [];
+    if (!msgs.length) return;
+    var m = msgs[0], info = m.info || {};
+    var interrupted = false;
+    if (info.role === "user") interrupted = true;
+    var parts = m.parts || [];
+    for (var j=0;j<parts.length;j++) {
+      if (parts[j].type === "tool") { var st = (parts[j].state||{}).status || ""; if (st === "running" || st === "pending") interrupted = true; }
+    }
+    if (info.role === "assistant" && interrupted) {
+      await abortAnywhere(sid);
+      await new Promise(function(r){ setTimeout(r, 1500); });
+    }
+    if (interrupted || info.role === "user") {
+      await sendMsg(sid, RESUME_MSG, sendOpts());
+      dbgLog("唤醒: " + sid.slice(4,12));
+      toast("已唤醒被中断的智能体续跑");
+      markDirty();
+    }
+  } catch(e){}
+}
+function watchWake(){
+  var linked = taskLinkedSids();
+  for (var sid in S.statuses) {
+    if ((S.statuses[sid].type || S.statuses[sid].status) === "busy") {
+      S.wasBusy[sid] = 1;
+      delete S.resumed[sid];
+    }
+  }
+  for (var sid2 in S.wasBusy) {
+    var cur = (S.statuses[sid2] || {});
+    var nowIdle = (cur.type || cur.status) !== "busy";
+    if (nowIdle) {
+      delete S.wasBusy[sid2];
+      if (!S.resumed[sid2] && linked[sid2]) {
+        S.resumed[sid2] = 1;
+        checkInterruptedAndResume(sid2);
+      }
+    }
+  }
+  for (var sid3 in S.stuckSince) {
+    if (S.stuckSince[sid3] && Date.now() - S.stuckSince[sid3] > 600000 && !S.woken[sid3] && linked[sid3]) {
+      (function(zid){
+        S.woken[zid] = 1;
+        dbgLog("僵尸清除+唤醒: " + zid.slice(4,12));
+        abortAnywhere(zid).then(function(){ sendMsg(zid, RESUME_MSG, sendOpts()); markDirty(); });
+      })(sid3);
+    }
+  }
+}
+
+var ACC_PRESETS = {
+  "none": null,
+  "normal": { rounds: [ { name: "构建自检", mode: "agent", intervalMin: 2, maxRetry: 3 }, { name: "人工验收", mode: "human" } ] },
+  "rl": { rounds: [
+    { name: "基础设施", cmd: "", intervalMin: 1, maxRetry: 3 },
+    { name: "学习信号", cmd: "", intervalMin: 3, maxRetry: 3 },
+    { name: "性能达标", cmd: "", intervalMin: 3, maxRetry: 3 },
+    { name: "人工验收", mode: "human" }
+  ] }
+};
+async function accRunCheck(cmd, dir){
+  try {
+    var r = await fetch("/acc/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cmd: cmd, dir: dir || "" }) });
+    return await r.json();
+  } catch(e){ return { pass: false, output: "check error: " + e.message }; }
+}
+async function accEngine(){
+  for (var id in S.tasks) {
+    var t = S.tasks[id];
+    var acc = t.acc;
+    if (!acc || acc.done || acc.pause) continue;
+    if (taskActivity(t) === "run") continue;
+    var rounds = acc.rounds || [];
+    var ri = acc.cur || 0;
+    if (ri >= rounds.length) { acc.done = 1; tApi("PATCH", { acc: acc }, id); continue; }
+    if (acc.status === "waiting_human") continue;
+    if (acc.nextAt && Date.now() < acc.nextAt) continue;
+    var r = rounds[ri];
+    if (r.mode === "human") {
+      acc.status = "waiting_human";
+      toast("「" + t.title + "」自动验收全通过，等你人工终审");
+      tApi("PATCH", { acc: acc }, id);
+      continue;
+    }
+    if (!r.cmd) { acc.cur = ri + 1; tApi("PATCH", { acc: acc }, id); continue; }
+    var dir = (S.sessions[t.sessionID] || {}).directory || "";
+    var res = await accRunCheck(r.cmd, dir);
+    acc.history = acc.history || [];
+    if (res.pass) {
+      acc.history.push({ r: ri, pass: 1, out: String(res.output||"").slice(0, 200), t: Date.now() });
+      acc.cur = ri + 1;
+      acc.attempts = 0;
+      toast("验收 R" + (ri+1) + "·" + r.name + " ✓ " + (rounds[ri+1] ? "进入 " + rounds[ri+1].name : "自动轮全部通过"));
+      if (acc.cur >= rounds.length) acc.done = 1;
+    } else {
+      acc.attempts = (acc.attempts || 0) + 1;
+      acc.history.push({ r: ri, pass: 0, out: String(res.output||"").slice(0, 300), t: Date.now() });
+      if (acc.attempts >= (r.maxRetry || 3)) {
+        acc.pause = 1;
+        toast("⚠ 「" + t.title + "」验收轮「" + r.name + "」重试耗尽，需人工介入");
+      } else {
+        var fb = "（验收打回·第" + (ri+1) + "轮「" + r.name + "」第" + acc.attempts + "次未过）\n检查输出：\n" + (res.output || "无输出") + "\n请针对性修复后重新完成，验收将自动重试。";
+        try { if (t.sessionID) await sendMsg(t.sessionID, fb, sendOpts()); } catch(e2){}
+        acc.nextAt = Date.now() + (r.intervalMin || 3) * 60000;
+        toast("「" + r.name + "」未过 → 已带证据打回 (" + acc.attempts + "/" + (r.maxRetry||3) + ")");
+      }
+    }
+    tApi("PATCH", { acc: acc }, id);
+  }
+}
+function accChip(t){
+  if (!t.acc) return "";
+  if (t.acc.done) return '<span class="chip idle">☑验收</span>';
+  var total = (t.acc.rounds||[]).length;
+  var cur = (t.acc.cur||0) + 1;
+  if (t.acc.pause) return '<span class="chip rec">⚠验收'+cur+'/'+total+'</span>';
+  if (t.acc.status === "waiting_human") return '<span class="chip rec">◉待终审</span>';
+  return '<span class="chip none">▣R'+cur+'/'+total+'</span>';
+}
+
+async function refreshAll(){
+  var ok = true;
+  var sess = null, stat = {}, tsk = {}, qs = null;
+  try { sess = await api("/session"); } catch(e){ ok = false; }
+  try { stat = await api("/session/status") || {}; } catch(e){}
+  try { tsk = await tApi("GET", null, null) || {}; } catch(e){ ok = false; }
+  try { qs = await api("/question"); } catch(e){}
+  if (qs && Array.isArray(qs)) {
+    S.questions = {};
+    for (var qi=0; qi<qs.length; qi++) if (qs[qi] && qs[qi].id) S.questions[qs[qi].id] = qs[qi];
+  }
+  renderQuestions();
+  $("errbar").style.display = ok ? "none" : "block";
+  if (!ok) $("errbar").textContent = "⚠ 会话服务连接失败（检查 opencode 4096/4100 与 pilot 服务）";
+  if (sess) {
+    S.sessions = {};
+    for (var i=0;i<sess.length;i++) {
+      S.sessions[sess[i].id] = sess[i];
+      var sid = sess[i].id;
+      var u = (sess[i].time && sess[i].time.updated) || 0;
+      if (S.prevUpdated[sid] !== undefined && u > S.prevUpdated[sid]) S.liveUntil[sid] = Date.now() + 20000;
+      S.prevUpdated[sid] = u;
+    }
+  }
+  S._loadedOnce = true;
+  S.statuses = stat;
+  S.tasks = tsk;
+  if (S.curTask && S.tasks[S.curTask.id]) S.curTask = S.tasks[S.curTask.id];
+  autoStage();
+  watchWake();
+  if (!S._migDone) { S._migDone = 1; migrateRoles(); }
+  renderBoard();
+  renderBanner();
+  if ($("ovl").classList.contains("open")) renderSidebar();
+  if (S.curTask) refreshDetail(false);
+}
+
+function accGateOk(t){
+  return !t.acc || t.acc.done || t.acc.status === "waiting_human";
+}
+function autoStage(){
+  for (var id in S.tasks) {
+    var t = S.tasks[id];
+    if (!t.sessionID && !(t.workers||[]).length) continue;
+    if (t.mode === "multi" || (t.workers || []).length) {
+      var ws = t.workers || [];
+      var mergeDone = !t.mergeSid || activityOf(t.mergeSid) !== "run";
+      if (t.stage === "exec" && t.merged && mergeDone && taskActivity(t) !== "run" && accGateOk(t)) {
+        (function(tid){ tApi("PATCH", { stage: "review" }, tid); })(id);
+        t.stage = "review";
+      } else if (t.stage === "review" && (taskActivity(t) === "run" || (t.mergeSid && activityOf(t.mergeSid) === "run"))) {
+        (function(tid){ tApi("PATCH", { stage: "exec" }, tid); })(id);
+        t.stage = "exec";
+      }
+      continue;
+    }
+    var act = activityOf(t.sessionID);
+    if (t.stage === "exec" && act === "idle" && accGateOk(t)) {
+      (function(tid){ tApi("PATCH", { stage: "review" }, tid); })(id);
+      t.stage = "review";
+    } else if (t.stage === "review" && act === "run") {
+      (function(tid){ tApi("PATCH", { stage: "exec" }, tid); })(id);
+      t.stage = "exec";
+    }
+  }
+}
+
+function isWorkerSession(s){
+  if (!s) return false;
+  if (s.parentID) return true;
+  return / #W\d| #MERGE/.test(s.title || "");
+}
+function renderBoard(){
+  var sig = JSON.stringify(S.statuses) + "#" + Object.keys(S.tasks).map(function(k){ var t=S.tasks[k]; return k+t.stage+t.updated+(t.sessionID||"")+(t.sessionID?activityOf(t.sessionID):"")+((t.workers&&t.workers.length)||0)+(t.merged?1:0); }).sort().join("|") + "#" + Object.keys(S.sessions).map(function(k){ var s=S.sessions[k]; return k+((s.time&&s.time.updated)||0)+((s._todo&&s._todo.length)||0)+(s.parentID||""); }).sort().join("|") + "#" + JSON.stringify(S.liveTools) + "#" + JSON.stringify(S.cardSubOpen);
+  if (sig === renderBoard._sig) return;
+  renderBoard._sig = sig;
+  var b = $("board");
+  var cols = { todo: [], plan: [], exec: [], review: [], done: [] };
+  var list = Object.keys(S.tasks).map(function(k){ return S.tasks[k]; }).sort(function(a,c){ return c.updated - a.updated; });
+  list = list.filter(function(t){ return !isWorkerSession(S.sessions[t.sessionID]); });
+  for (var i=0;i<list.length;i++) (cols[list[i].stage] || cols.todo).push(list[i]);
+  var unlinked = 0;
+  var linked = {};
+  for (i=0;i<list.length;i++) if (list[i].sessionID) linked[list[i].sessionID] = 1;
+  for (var sid in S.sessions) if (!linked[sid] && !isWorkerSession(S.sessions[sid])) unlinked++;
+  var html = "";
+  var order = ["todo","plan","exec","review","done"];
+  for (var ci=0; ci<order.length; ci++){
+    var key = order[ci], arr = cols[key], f = FLOW[key];
+    var hide = (key === "done") ? ' style="display:none"' : "";
+    html += '<div class="col" data-stage="'+key+'">' +
+      '<div class="colh">'+f.icon+' '+f.name+' <span class="cnt">'+arr.length+'</span><span class="clr"></span>'+(key==="done"?'<span class="arw" data-tgl>▾</span>':"")+'</div>' +
+      '<div class="colbody"'+hide+'>';
+    if (!arr.length) {
+      if (key === "todo") html += '<div class="empty">'+(unlinked ? '<span class="big" onclick="$(\'impBtn\').click()">📥 有 '+unlinked+' 个会话待导入</span><br>或点右上「＋新任务」' : '— 空 —<br>点右上「＋新任务」')+'</div>';
+      else html += '<div class="empty">— 空 —</div>';
+    }
+    for (var j=0;j<arr.length;j++) html += cardHtml(arr[j]);
+    html += '</div></div>';
+  }
+  b.innerHTML = html;
+  bindBoard();
+}
+
+function cardHtml(t){
+  var act = (t.workers && t.workers.length) || t.mode === "multi" ? (taskActivity(t) || "") : (t.sessionID ? activityOf(t.sessionID) : "");
+  var stuckMain = act === "run" && t.sessionID && S.stuckSince[t.sessionID] && Date.now() - S.stuckSince[t.sessionID] > 180000;
+  var s = S.sessions[t.sessionID];
+  var ts = (s && s.time && s.time.updated) || t.updated;
+  var st = "";
+  if (act === "run") st = stuckMain ? "warn" : "run";
+  else if (act === "recent") st = "rec";
+  else if (act) st = "idle";
+  var stTxt = stuckMain ? "⚠卡住" : (act === "run" ? "RUN" : (act === "recent" ? "RECENT" : (act ? "IDLE" : "STANDBY")));
+  var line = '<span class="sdot ' + st + '"></span><span class="sttxt ' + st + '">' + stTxt + '</span>';
+  if (t.mode === "multi" || (t.workers||[]).length) line += '<span class="stag">' + ((t.workers||[]).length || "?") + '路</span>';
+  if (t.gen && t.gen > 1) line += '<span class="stag">⟲' + t.gen + '</span>';
+  if (t.sessionID && S.queue[t.sessionID] && S.queue[t.sessionID].length) line += '<span class="stag">⧗' + S.queue[t.sessionID].length + '</span>';
+  if (t.acc) {
+    if (t.acc.done) line += '<span class="stag ok">☑验收</span>';
+    else {
+      var rd = "";
+      var rlist = t.acc.rounds || [];
+      for (var ri2=0; ri2<rlist.length; ri2++) rd += (ri2 < (t.acc.cur||0)) ? "✓" : (ri2 === (t.acc.cur||0) ? (t.acc.pause ? "✗" : "●") : "○");
+      line += '<span class="stag">R' + ((t.acc.cur||0)+1) + '/' + rlist.length + '</span><span class="stag accdot">' + rd + '</span>';
+    }
+  }
+  line += '<span style="flex:1"></span><span class="stag">' + fmtRel(ts) + (t.sessionID ? " · L" : "") + '</span>';
+  if (t.sessionID && S.queue[t.sessionID] && S.queue[t.sessionID].length) chip += '<span class="chip rec">⧗' + S.queue[t.sessionID].length + '</span>';
+  var prog = "";
+  var s = S.sessions[t.sessionID];
+  if (s && s._todo && s._todo.length) {
+    var done = s._todo.filter(function(x){ return x.status === "completed"; }).length;
+    prog = '<div class="bar"><i style="width:'+Math.round(done/s._todo.length*100)+'%"></i></div><div class="tmeta">TODO '+done+'/'+s._todo.length+'</div>';
+  }
+  var btns = "";
+  var flow = FLOW[t.stage] || FLOW.todo;
+  if (t.stage === "review") {
+    btns += '<button class="abtn ok" data-move="done">'+NEXTLBL.done+'</button>';
+    btns += '<button class="abtn warn" data-move="exec">↩ 打回</button>';
+    btns += '<button class="abtn" data-rework="1">✎ 意见</button>';
+  } else {
+    for (var i=0;i<flow.next.length;i++){
+      var nx = flow.next[i];
+      var cls = "abtn" + (nx === "exec" ? " go" : (nx === "done" ? " ok" : ((nx === "todo" && t.stage !== "plan") ? " warn" : "")));
+      btns += '<button class="'+cls+'" data-move="'+nx+'">'+NEXTLBL[nx]+'</button>';
+    }
+    if (t.stage === "exec" && act === "run") btns += '<button class="abtn" data-abort="1" style="background:color-mix(in srgb, var(--er) 14%, transparent);color:var(--er)">■ 中断</button>';
+  }
+  var subs = "";
+  var wlist = (t.stage === "done" && t.merged) ? [] : (t.workers || []);
+  if (wlist.length) {
+    var runWs = [], doneWs = [];
+    for (var sw=0; sw<wlist.length; sw++) {
+      (activityOf(wlist[sw].sessionID) === "run" ? runWs : doneWs).push(wlist[sw]);
+    }
+    if (t.merged && !runWs.length) {
+      var copen = S.cardSubOpen && S.cardSubOpen[t.id];
+      subs = '<div class="csum" data-csum="'+t.id+'">⬡ '+wlist.length+' 路分工 · 已汇总 '+(copen?"▴":"▾")+'</div>';
+      if (copen) {
+        subs += '<div class="croles">' + doneWs.map(function(x){ return '<span class="crole">✓ '+esc(x.role)+'</span>'; }).join("") + '</div>';
+      }
+    } else {
+    subs += '<div class="cwrap">';
+    var wTotal = wlist.length + (t.merged ? 0 : 1);
+    for (var wi=0; wi<wlist.length && wi<3; wi++) {
+      var wAct = activityOf(wlist[wi].sessionID);
+      subs += '<div class="csub agent '+(wAct==="run"?"running":"")+'"><span>◈</span><span class="cn">'+esc(wlist[wi].role)+'</span><span class="ct">'+(wAct==="run"?"执行中":(t.merged?"已完成":"待汇总"))+'</span></div>';
+    }
+    if (!t.merged && t.sessionID) subs += '<div class="csub running"><span>⌘</span><span class="cn">汇总</span><span class="ct">'+(activityOf(t.sessionID)==="run"?"合并验收中":"待完成")+'</span></div>';
+    if (wTotal > 4) subs += '<div class="csub more">+'+(wTotal-4)+' more</div>';
+    subs += '</div>';
+    }
+  } else if (t.sessionID && !(t.stage === "done")) {
+    var kids = Object.keys(S.sessions).filter(function(k){ return S.sessions[k].parentID === t.sessionID; });
+    var lts = S.liveTools[t.sessionID] || [];
+    var total = kids.length + lts.length;
+    if (total) {
+      subs = '<div class="cwrap">';
+      var shown = 0;
+      for (var li=0; li<lts.length && shown<4; li++, shown++) subs += '<div class="csub running"><span>⚙</span><span class="cn">'+esc(lts[li].tool)+'</span><span class="ct">'+esc(lts[li].title)+'</span></div>';
+      for (li=0; li<kids.length && shown<4; li++, shown++) {
+        var ks = S.sessions[kids[li]];
+        var krun = activityOf(ks.id) === "run";
+        subs += '<div class="csub agent '+(krun?"running":"")+'"><span>◈</span><span class="cn">子AGENT</span><span class="ct">'+esc(ks.title || ks.id.slice(4,14))+'</span><span style="flex:0 0 auto;font-size:10px;color:'+(krun?"var(--cy)":"var(--mut)")+'">'+(krun?"RUN":"IDLE")+'</span></div>';
+      }
+      if (total > 4) subs += '<div class="csub more">+'+(total-4)+' more</div>';
+      subs += '</div>';
+    }
+  }
+  return '<div class="tcard" draggable="true" data-id="'+t.id+'">' +
+    '<div class="title">'+esc(t.title)+'</div>' +
+    '<div class="statline">'+line+'</div>' +
+    (t.desc ? '<div class="desc">'+esc(t.desc)+'</div>' : "") + prog +
+    '<div class="btnrow">'+btns+'</div>'+subs+'</div>';
+}
+
+function bindBoard(){
+  var tgl = document.querySelector("[data-tgl]");
+  if (tgl) tgl.onclick = function(e){
+    e.stopPropagation();
+    var body = this.closest(".col").querySelector(".colbody");
+    var show = body.style.display === "none";
+    body.style.display = show ? "" : "none";
+    this.textContent = show ? "▴" : "▾";
+  };
+  var cards = document.querySelectorAll(".tcard");
+  for (var i=0;i<cards.length;i++){
+    var c = cards[i];
+    (function(card){
+      var cid = card.getAttribute("data-id");
+      var lp = null;
+      card._fired = false;
+      card.addEventListener("dragstart", function(e){ e.dataTransfer.setData("text/plain", cid); this.style.opacity=.5; });
+      card.addEventListener("dragend", function(){ this.style.opacity=1; });
+      card.addEventListener("touchstart", function(){ card._fired = false; lp = setTimeout(function(){ card._fired = true; askDeleteTask(cid); }, 650); }, {passive:true});
+      card.addEventListener("touchend", function(){ clearTimeout(lp); }, {passive:true});
+      card.addEventListener("touchmove", function(){ clearTimeout(lp); }, {passive:true});
+      card.addEventListener("contextmenu", function(e){ e.preventDefault(); askDeleteTask(cid); });
+      card.addEventListener("click", function(e){
+        if (e.target.getAttribute("data-move") || card._fired) return;
+        openDetail(cid);
+      });
+    })(c);
+    var btns = c.querySelectorAll("[data-move]");
+    for (var j=0;j<btns.length;j++) btns[j].addEventListener("click", function(e){
+      e.stopPropagation();
+      moveTask(this.closest(".tcard").getAttribute("data-id"), this.getAttribute("data-move"));
+    });
+    var csums = c.querySelectorAll("[data-csum]");
+    for (j=0;j<csums.length;j++) csums[j].addEventListener("click", function(e){
+      e.stopPropagation();
+      var tid = this.getAttribute("data-csum");
+      if (!S.cardSubOpen) S.cardSubOpen = {};
+      S.cardSubOpen[tid] = !S.cardSubOpen[tid];
+      renderBoard._sig = "";
+      renderBoard();
+    });
+    var rw = c.querySelectorAll("[data-rework]");
+    for (j=0;j<rw.length;j++) rw[j].addEventListener("click", function(e){
+      e.stopPropagation();
+      openRework(this.closest(".tcard").getAttribute("data-id"));
+    });
+    var ab = c.querySelectorAll("[data-abort]");
+    for (j=0;j<ab.length;j++) ab[j].addEventListener("click", function(e){
+      e.stopPropagation();
+      var cid = this.closest(".tcard").getAttribute("data-id");
+      var tk = S.tasks[cid];
+      if (tk && tk.sessionID) {
+        toast("正在多通道发送中止信号…");
+        abortAnywhere(tk.sessionID).then(function(h){ toast(h > 0 ? "已中止（命中 " + h + " 个实例）" : "中止失败：会话不在已知实例上"); markDirty(); });
+      }
+    });
+  }
+  var cols = document.querySelectorAll(".col");
+  for (var k=0;k<cols.length;k++){
+    cols[k].addEventListener("dragover", function(e){ e.preventDefault(); this.classList.add("dragover"); });
+    cols[k].addEventListener("dragleave", function(){ this.classList.remove("dragover"); });
+    cols[k].addEventListener("drop", function(e){
+      e.preventDefault();
+      this.classList.remove("dragover");
+      var id = e.dataTransfer.getData("text/plain");
+      var to = this.getAttribute("data-stage");
+      if (id && to) moveTask(id, to, null, true);
+    });
+  }
+}
+
+async function askDeleteTask(id){
+  var t = S.tasks[id];
+  if (!t) return;
+  if (!confirm("删除任务「"+t.title+"」？（opencode 会话保留）")) return;
+  await tApi("DELETE", null, id);
+  renderBoard._sig = "";
+  refreshAll();
+}
+
+async function ensureSession(t){
+  if (t.sessionID && S.sessions[t.sessionID]) return t.sessionID;
+  var s = await api("/session", { method: "POST", body: JSON.stringify({ title: t.title }) });
+  t.sessionID = s.id;
+  S.sessions[s.id] = s;
+  await tApi("PATCH", { sessionID: s.id }, t.id);
+  return s.id;
+}
+async function sendMsg(sid, text, opts){
+  var body = { parts: [{ type: "text", text: text }] };
+  if (opts && opts.model) body.model = opts.model;
+  if (opts && opts.agent) body.agent = opts.agent;
+  await api("/session/" + sid + "/prompt_async", { method: "POST", body: JSON.stringify(body) });
+}
+var modelList = [];
+async function loadSelectorData(){
+  var connected = {};
+  try {
+    var pr = await api("/provider");
+    var conn = (pr && pr.connected) || [];
+    for (var ci=0; ci<conn.length; ci++) connected[conn[ci]] = true;
+  } catch(e){}
+  try {
+    var r = await api("/config/providers");
+    modelList = [];
+    var provs = (r && r.providers) || [];
+    for (var i=0;i<provs.length;i++) {
+      var p = provs[i];
+      var pid = p.id || p.name;
+      if (Object.keys(connected).length && !connected[pid]) continue;
+      if (!p.models) continue;
+      for (var k2 in p.models) modelList.push({ id: pid + "/" + k2, provider: pid, model: k2 });
+    }
+  } catch(e2){}
+  var stored = localStorage.getItem("oc_model") || "";
+  if (stored) {
+    var okM = modelList.some(function(m){ return m.id === stored; });
+    if (!okM) { localStorage.removeItem("oc_model"); toast("已忽略不可用的模型选择"); }
+  }
+  updateSetButton();
+}
+function updateSetButton(){
+  var m = localStorage.getItem("oc_model") || "";
+  var a = localStorage.getItem("oc_agent") || "";
+  var el = $("ovsetm");
+  if (el) el.textContent = (m ? m.split("/").pop() : "默认") + (a ? "/" + a : "");
+}
+var THEMES = [
+  { id: "orange", name: "黑橙", desc: "深炭底 + 暖橙 #e0873d" },
+  { id: "gold", name: "黑金", desc: "曜石底 + 暗金 #d4af37" },
+  { id: "gray", name: "灰", desc: "中性灰 单色系" },
+  { id: "vscode", name: "VSCode Dark+", desc: "编辑器原色 #1e1e1e" }
+];
+function applyTheme(tid){
+  if (!THEMES.some(function(t){ return t.id === tid; })) tid = "orange";
+  document.documentElement.setAttribute("data-theme", tid);
+  localStorage.setItem("oc_theme", tid);
+  var mt = document.querySelector('meta[name="theme-color"]');
+  if (mt) mt.setAttribute("content", tid === "orange" ? "#141414" : (tid === "gold" ? "#121210" : (tid === "gray" ? "#171717" : (tid === "vscode" ? "#1e1e1e" : "#0b0e14"))));
+}
+function renderSetDialog(){
+  var curTheme = localStorage.getItem("oc_theme") || "orange";
+  var curFast = parseInt(localStorage.getItem("oc_fastms") || "2500", 10);
+  var th = '<div class="sethead">主题</div>';
+  for (var ti=0;ti<THEMES.length;ti++) {
+    var t2 = THEMES[ti];
+    th += '<div class="setopt'+(curTheme===t2.id?" on":"")+'" data-settheme="'+t2.id+'"><span class="chk">'+(curTheme===t2.id?"◉":"○")+'</span><span class="sn">'+esc(t2.name)+'</span><span class="sp">'+esc(t2.desc)+'</span></div>';
+  }
+  $("settheme").innerHTML = th;
+  var sp = '<div class="sethead">刷新 / 调用速度</div>';
+  var speeds = [[1000,"极速 1s"],[2500,"标准 2.5s"],[5000,"省流 5s"],[10000,"节能 10s"]];
+  for (var si=0;si<speeds.length;si++) {
+    sp += '<div class="setopt'+(curFast===speeds[si][0]?" on":"")+'" data-setspeed="'+speeds[si][0]+'"><span class="chk">'+(curFast===speeds[si][0]?"◉":"○")+'</span><span class="sn">'+speeds[si][1]+'</span><span class="sp">实时轮询间隔</span></div>';
+  }
+  $("setspeed").innerHTML = sp;
+  var tos = document.querySelectorAll("[data-settheme]");
+  for (ti=0;ti<tos.length;ti++) tos[ti].onclick = function(){
+    applyTheme(this.getAttribute("data-settheme"));
+    renderSetDialog();
+    toast("主题已切换");
+  };
+  var sos = document.querySelectorAll("[data-setspeed]");
+  for (si=0;sos.length?si<sos.length:0;si++) sos[si].onclick = function(){
+    localStorage.setItem("oc_fastms", this.getAttribute("data-setspeed"));
+    S.fastMs = parseInt(this.getAttribute("data-setspeed"), 10);
+    renderSetDialog();
+    toast("刷新间隔 → " + (S.fastMs/1000) + "s");
+  };
+  var curM = localStorage.getItem("oc_model") || "";
+  var curA = localStorage.getItem("oc_agent") || "";
+  var ah = '<div class="sethead">AGENT</div>';
+  ah += '<div class="setopt'+(curA===""?" on":"")+'" data-setagent=""><span class="chk">'+(curA===""?"◉":"○")+'</span><span class="sn">默认</span><span class="sp">当前任务默认</span></div>';
+  for (var i=0;i<S.agents.length;i++) {
+    var a2 = S.agents[i];
+    ah += '<div class="setopt'+(curA===a2?" on":"")+'" data-setagent="'+esc(a2)+'"><span class="chk">'+(curA===a2?"◉":"○")+'</span><span class="sn">'+esc(a2)+'</span></div>';
+  }
+  $("setagents").innerHTML = ah;
+  var mh = '<div class="sethead">MODEL（仅显示已连接的 provider）</div>';
+  mh += '<div class="setopt'+(curM===""?" on":"")+'" data-setmodel=""><span class="chk">'+(curM===""?"◉":"○")+'</span><span class="sn">默认</span></div>';
+  var lastProv = "";
+  for (i=0;i<modelList.length;i++) {
+    var m2 = modelList[i];
+    if (m2.provider !== lastProv) { mh += '<div class="sethead">'+esc(m2.provider)+'</div>'; lastProv = m2.provider; }
+    mh += '<div class="setopt'+(curM===m2.id?" on":"")+'" data-setmodel="'+esc(m2.id)+'"><span class="chk">'+(curM===m2.id?"◉":"○")+'</span><span class="sn">'+esc(m2.model)+'</span></div>';
+  }
+  $("setmodels").innerHTML = mh;
+  var ao = document.querySelectorAll("[data-setagent]");
+  for (i=0;i<ao.length;i++) ao[i].onclick = function(){
+    var v = this.getAttribute("data-setagent") || "";
+    if (v) localStorage.setItem("oc_agent", v); else localStorage.removeItem("oc_agent");
+    toast("agent→ " + (v || "默认"));
+    renderSetDialog(); updateSetButton();
+  };
+  var mo = document.querySelectorAll("[data-setmodel]");
+  for (i=0;i<mo.length;i++) mo[i].onclick = function(){
+    var v = this.getAttribute("data-setmodel") || "";
+    if (v) localStorage.setItem("oc_model", v); else localStorage.removeItem("oc_model");
+    toast("模型→ " + (v ? v.split("/").pop() : "默认"));
+    renderSetDialog(); updateSetButton();
+  };
+}
+$("ovset").onclick = function(){ renderSetDialog(); $("sdlg").style.display = "flex"; };
+$("sclose").onclick = function(){ $("sdlg").style.display = "none"; };
+$("tokok").onclick = function(){
+  var v = $("tokin").value.trim();
+  if (!v) return;
+  localStorage.setItem("oc_token", v);
+  location.reload();
+};
+$("tokin").addEventListener("keydown", function(e){ if (e.key === "Enter") $("tokok").click(); });
+$("sdlg").addEventListener("click", function(e){ if (e.target === $("sdlg")) $("sclose").click(); });
+async function loadAgentsList(){
+  try {
+    var r2 = await api("/agent");
+    var arr = Array.isArray(r2) ? r2 : [];
+    S.agents = arr.map(function(a){ return a.name || "?"; });
+  } catch(e){ S.agents = ["build","plan","general"]; }
+}
+function modelShort(m){
+  if (!m) return "";
+  if (typeof m === "object") return String(m.modelID || m.model || "");
+  return String(m);
+}
+function sendOpts(){
+  var o = {};
+  var m = localStorage.getItem("oc_model") || "";
+  var a = localStorage.getItem("oc_agent") || "";
+  if (m && m.indexOf("/") > 0) o.model = { providerID: m.slice(0, m.indexOf("/")), modelID: m.slice(m.indexOf("/") + 1) };
+  if (a) o.agent = a;
+  return o;
+}
+
+async function moveTask(id, to, feedback, quiet){
+  var t = S.tasks[id];
+  if (!t) return;
+  var from = t.stage;
+  var flow = FLOW[from] || FLOW.todo;
+  if (flow.next.indexOf(to) < 0) { toast("不能从「" + (FLOW[from]||{}).name + "」移到「" + (FLOW[to]||{}).name + "」"); return; }
+  try {
+    if (to === "plan" && from !== "review") {
+      var sid1 = await ensureSession(t);
+      if (t.mode === "multi") {
+        await sendMsg(sid1, "任务：" + t.title + (t.desc ? "\n描述：" + t.desc : "") + "\n\n这是多智能体协同任务，请完成规划：\n1) 分析任务，梳理实际执行流程；\n2) 设计 2~4 路并行分工方案：按任务实际流程/模块划分（不要照搬固定模板，要贴合本任务，每路给出「角色名：职责说明」）；\n3) 用 question 工具向用户列出你设计的几个候选分工方案让用户选择；\n4) 用户确认后，输出最终计划（todo 清单），并在最后一行严格按此格式输出分工：\nSPLIT: 角色1：职责 | 角色2：职责 | 角色3：职责\n此阶段不要实际修改任何文件。");
+      } else {
+        await sendMsg(sid1, "任务：" + t.title + (t.desc ? "\n描述：" + t.desc : "") + "\n\n请先分析这个任务并制定执行计划：用 todo 工具列出清晰的执行步骤清单，说明每一步要做什么。此阶段不要实际修改任何文件。");
+      }
+    } else if (to === "plan" && from === "review") {
+      if (!quiet) {
+        var sidp = await ensureSession(t);
+        await sendMsg(sidp, "验收未通过，需要重新规划。" + (feedback ? "\n验收意见：" + feedback : "") + "\n请重新分析问题，基于反馈给出修订后的执行计划（更新 todo 清单），先不要大规模修改文件。");
+      }
+    } else if (to === "exec" && from !== "review") {
+      if (t.mode === "multi") {
+        var planCtx = "";
+        if (t.sessionID) planCtx = await lastAssistantText(t.sessionID);
+        await spawnWorkers(t, planCtx);
+      } else {
+        var sid2 = await ensureSession(t);
+        var msg = (from === "plan")
+          ? "计划已确认，请按上面的 todo 清单开始逐步执行，每完成一步及时更新清单。"
+          : "任务：" + t.title + (t.desc ? "\n描述：" + t.desc : "") + "\n\n请创建 todo 清单并直接开始执行，完成所有步骤。";
+        await sendMsg(sid2, msg);
+      }
+    } else if (to === "exec" && from === "review") {
+      if (!quiet) {
+        var sid3 = await ensureSession(t);
+        await sendMsg(sid3, "验收未通过，请继续修改直到满足任务要求。" + (feedback ? "\n验收意见：" + feedback : ""));
+      }
+      if (t.acc && t.acc.status === "waiting_human") {
+        t.acc.status = "";
+        t.acc.attempts = (t.acc.attempts || 0) + 1;
+        t.acc.nextAt = Date.now() + 60000;
+        await tApi("PATCH", { acc: t.acc }, id);
+      }
+    } else if (to === "todo") {
+      if (t.sessionID && activityOf(t.sessionID) === "run") await api("/session/" + t.sessionID + "/abort", { method: "POST" });
+    } else if (to === "review") {
+      if (t.sessionID && activityOf(t.sessionID) === "run") { toast("还在执行中，先等它跑完"); return; }
+    }
+    await tApi("PATCH", { stage: to }, id);
+    t.stage = to; t.updated = Date.now();
+    renderBoard._sig = "";
+    refreshAll();
+    toast("→ " + (FLOW[to]||{}).name);
+  } catch(e){ toast("操作失败: " + (e.message||e)); }
+}
+
+var ROLES = [
+  { key:"实现", prompt:"负责核心实现：直接修改/编写代码完成任务主体，保持改动聚焦。" },
+  { key:"测试", prompt:"负责测试验证：运行和检查功能，报告问题与失败场景；除测试文件外不要修改主实现。" },
+  { key:"审查", prompt:"负责代码审查：从设计、边界条件、可维护性角度审查，输出问题清单与改进建议；不要直接改代码。" },
+  { key:"文档", prompt:"负责文档总结：整理变更说明、使用方法和注意事项；只修改文档类文件。" }
+];
+function parseSplit(text){
+  if (!text) return null;
+  var m = text.match(/SPLIT[:：]\s*([^\n]+)/);
+  if (!m) return null;
+  var parts = m[1].split(/[|｜;;]/).map(function(x){ return x.trim(); }).filter(Boolean);
+  if (parts.length < 2) return null;
+  return parts.slice(0, 4).map(function(p){
+    var seg = p.split(/[:：]/);
+    return seg.length > 1 ? { key: seg[0].trim(), prompt: seg.slice(1).join(":").trim() } : { key: p, prompt: "分工方向：「" + p + "」。请按此分工独立完成你负责的部分。" };
+  });
+}
+async function progressSummary(sid, cap){
+  cap = cap || 3200;
+  var out = "";
+  try {
+    var msgs = await api("/session/" + sid + "/message?limit=100");
+    var finals = [];
+    for (var i=(msgs||[]).length-1; i>=0 && finals.length<3; i--) {
+      if ((msgs[i].info||{}).role !== "assistant") continue;
+      var parts = msgs[i].parts || [];
+      var lt = -1;
+      for (var j=0;j<parts.length;j++) if (parts[j].type === "tool") lt = j;
+      var tx = [];
+      for (j=0;j<parts.length;j++) if (parts[j].type === "text" && parts[j].text && j > lt) tx.push(parts[j].text);
+      var t2 = tx.join("\n").trim();
+      if (t2) finals.push(t2);
+    }
+    if (finals.length) {
+      out += "【主线最近汇报（新→旧）】\n";
+      for (i=0;i<finals.length;i++) out += "· " + finals[i].slice(0, 1100) + "\n\n";
+    }
+  } catch(e){}
+  try {
+    var todo = await api("/session/" + sid + "/todo");
+    if (todo && todo.length) {
+      out += "【当前待办清单】\n";
+      var dn = 0;
+      var ic = { completed:"✅", in_progress:"🔵", pending:"⬜", cancelled:"❌" };
+      for (var k=0;k<todo.length;k++) {
+        if (todo[k].status === "completed") dn++;
+        out += "  " + (ic[todo[k].status]||"⬜") + " " + todo[k].content + "\n";
+      }
+      out += "  （进度 " + dn + "/" + todo.length + "）\n";
+    }
+  } catch(e2){}
+  try {
+    var s = S.sessions[sid];
+    if (s && s.summary && (s.summary.files || s.summary.additions)) {
+      out += "【改动统计】+" + (s.summary.additions||0) + " / -" + (s.summary.deletions||0) + " 行，涉及 " + (s.summary.files||0) + " 个文件\n";
+    }
+  } catch(e3){}
+  return out.slice(0, cap) || "（暂无明显进展记录）";
+}
+async function buildTranscript(sid){
+  var msgs = await api("/session/" + sid + "/message?limit=500");
+  var lines = [];
+  var total = 0;
+  for (var i=0;i<(msgs||[]).length;i++){
+    var m = msgs[i], info = m.info || {};
+    var parts = m.parts || [];
+    var lt = -1;
+    for (var j=0;j<parts.length;j++) if (parts[j].type === "tool") lt = j;
+    var seg = "";
+    for (j=0;j<parts.length;j++){
+      var p = parts[j];
+      if (p.type === "text" && p.text) {
+        if (p.type === "text" && info.role === "assistant" && j <= lt) continue;
+        seg += p.text.slice(0, 1500);
+      } else if (p.type === "tool") {
+        var st = (p.state||{}).status || "";
+        var ttl = (p.state && (p.state.title || p.state.name)) || "";
+        seg += "\n  [" + (p.tool||"tool") + (ttl ? ":" + ttl.slice(0,60) : "") + " " + st + "]";
+      }
+    }
+    if (!seg.trim()) continue;
+    var line = (info.role === "user" ? "【用户】" : "【AI】") + seg.trim();
+    if (total + line.length > 60000) { lines.push("…（更早内容已截断）"); break; }
+    lines.push(line);
+    total += line.length;
+  }
+  return lines.join("\n");
+}
+var ctxCache = {};
+async function compactContext(sid){
+  if (!sid) return { kind: "none", text: "" };
+  var s = S.sessions[sid];
+  var key = sid + ":" + ((s && s.time && s.time.updated) || 0);
+  if (ctxCache[key]) return ctxCache[key];
+  var result;
+  try {
+    var tx = await buildTranscript(sid);
+    if (!tx) { result = { kind: "none", text: "" }; ctxCache[key] = result; return result; }
+    if (tx.length < 8000) {
+      result = { kind: "full", text: tx };
+    } else {
+      var sum = await api("/session", { method: "POST", body: JSON.stringify({ title: "#上下文压缩(临时)" }) });
+      var resp = await api("/session/" + sum.id + "/message", { method: "POST", body: JSON.stringify({ parts: [{ type: "text", text: "下面是一个 opencode 会话的完整记录。请压缩成给接手智能体的交接摘要，严格按此结构输出（总共不超过700字）：\n1. 任务目标与原始要求\n2. 当前状态（进行到哪）\n3. 已完成（要点+关键文件）\n4. 关键决策与失败教训\n5. 未完成/待办\n6. 注意事项（环境、坑）\n\n=== 会话记录 ===\n" + tx.slice(0, 50000) }] }) });
+      var outTx = [];
+      var rParts = (resp && resp.parts) || [];
+      for (var k=0;k<rParts.length;k++) if (rParts[k].type === "text" && rParts[k].text) outTx.push(rParts[k].text);
+      var sumText = outTx.join("\n").trim();
+      try { await api("/session/" + sum.id, { method: "DELETE" }); } catch(e4){}
+      if (sumText) result = { kind: "compressed", text: sumText };
+      else result = { kind: "partial", text: await progressSummary(sid) };
+    }
+  } catch(e){ result = { kind: "partial", text: "" }; try { result.text = await progressSummary(sid); } catch(e2){} }
+  ctxCache[key] = result;
+  return result;
+}
+async function ensureCoordinator(t){
+  if (t.sessionID && S.sessions[t.sessionID]) return t.sessionID;
+  var s = await api("/session", { method: "POST", body: JSON.stringify({ title: t.title }) });
+  S.sessions[s.id] = s;
+  t.sessionID = s.id;
+  await tApi("PATCH", { sessionID: s.id }, t.id);
+  return s.id;
+}
+function taskActivity(t){
+  if (t.sessionID && activityOf(t.sessionID) === "run") return "run";
+  var ws = t.workers || [];
+  for (var i=0;i<ws.length;i++) if (activityOf(ws[i].sessionID) === "run") return "run";
+  if (t.sessionID) return activityOf(t.sessionID);
+  return ws.length ? "idle" : "";
+}
+async function lastAssistantText(sid){
+  try {
+    var msgs = await api("/session/" + sid + "/message?limit=100");
+    for (var i=(msgs||[]).length-1; i>=0; i--) {
+      if ((msgs[i].info||{}).role !== "assistant") continue;
+      var tx = [];
+      var parts = msgs[i].parts || [];
+      var lastTool = -1;
+      for (var j=0;j<parts.length;j++) if (parts[j].type === "tool") lastTool = j;
+      for (j=0;j<parts.length;j++) if (parts[j].type === "text" && parts[j].text && j > lastTool) tx.push(parts[j].text);
+      if (tx.length) return tx.join("\n").slice(0, 3500);
+    }
+  } catch(e){}
+  return "";
+}
+async function spawnWorkers(t, planCtx){
+  await ensureCoordinator(t);
+  var roles = parseSplit(planCtx) || ROLES.slice(0, Math.max(2, Math.min(4, t.wn || 3)));
+  var n = roles.length;
+  var workers = [];
+  for (var i=0;i<n;i++){
+    var role = roles[i];
+    var s = await api("/session", { method: "POST", body: JSON.stringify({ title: t.title + " #W" + (i+1) + " " + role.key, parentID: t.sessionID }) });
+    S.sessions[s.id] = s;
+    var msg = "任务：" + t.title + (t.desc ? "\n描述：" + t.desc : "") +
+      (planCtx ? "\n\n既定计划（供参考）：\n" + planCtx.slice(0, 2000) : "") +
+      "\n\n你是多智能体协作中并行分工「" + role.key + "」（共" + n + "路，其余正在并行工作）。" + role.prompt +
+      "\n完成后输出要点式结果报告，供汇总合并使用。";
+    await sendMsg(s.id, msg);
+    workers.push({ sessionID: s.id, role: role.key });
+  }
+  t.workers = workers;
+  await tApi("PATCH", { workers: workers }, t.id);
+}
+async function mergeWorkers(t){
+  t._merging = true;
+  await ensureCoordinator(t);
+  var mainCtx = await progressSummary(t.sessionID, 2600);
+  var reports = "";
+  var ws = t.workers || [];
+  for (var i=0;i<ws.length;i++){
+    var txt = await lastAssistantText(ws[i].sessionID);
+    reports += "\n\n【" + ws[i].role + " 报告】\n" + (txt || "（无输出）");
+  }
+  var s = await api("/session", { method: "POST", body: JSON.stringify({ title: t.title + " #MERGE", parentID: t.sessionID }) });
+  S.sessions[s.id] = s;
+  await sendMsg(s.id, "【协调者】你是本任务的汇总协调智能体（独立于主线，主线正在并行工作、不受你影响）。\n任务：" + t.title + (t.desc ? "\n描述：" + t.desc : "") +
+    "\n\n=== 主线当前状态（含待办清单） ===\n" + (mainCtx || "（无记录）") +
+    "\n=== 各分支智能体报告 ===" + reports +
+    "\n\n由你自主决策整合方式，不要机械照搬：\n1) 判断各分支成果与主线待办的冲突/重叠；\n2) 主线未完成的 todo 若仍必要，列出建议（不要替主线执行大改动，除非分支成果未被采纳且明确缺失）；\n3) 整合分支成果，必要时直接完成收尾修改；\n4) 输出：交付说明 / 验收要点 / 给主线的建议（要点式）。");
+  t.mergeSid = s.id;
+  t.merged = true;
+  await tApi("PATCH", { merged: true, mergeSid: s.id }, t.id);
+  delete t._merging;
+}
+async function checkMultiTasks(){
+  for (var id in S.tasks) {
+    var t = S.tasks[id];
+    if (t.stage !== "exec" && t.stage !== "review") continue;
+    var ws = t.workers || [];
+    if (!ws.length || t.merged || t._merging) continue;
+    var allDone = true;
+    for (var i=0;i<ws.length;i++) if (activityOf(ws[i].sessionID) === "run") { allDone = false; break; }
+    if (allDone) {
+      toast("「" + t.title + "」分支全部完成，已启动独立汇总（不干扰主线）");
+      mergeWorkers(t).then(function(){ markDirty(); });
+    }
+  }
+}
+var reworkId = null;
+function openRework(id){
+  reworkId = id;
+  $("ftext").value = "";
+  $("fdlg").style.display = "flex";
+  $("ftext").focus();
+}
+$("fcancel").onclick = function(){ $("fdlg").style.display = "none"; reworkId = null; };
+$("fexec").onclick = function(){ $("fdlg").style.display = "none"; if (reworkId) moveTask(reworkId, "exec", $("ftext").value.trim()); reworkId = null; };
+$("fplan").onclick = function(){ $("fdlg").style.display = "none"; if (reworkId) moveTask(reworkId, "plan", $("ftext").value.trim()); reworkId = null; };
+
+function renderQuestions(){
+  var el = $("qbanner");
+  if (!el) return;
+  var html = "";
+  for (var qid in S.questions) {
+    var req = S.questions[qid];
+    var sInfo = S.sessions[req.sessionID];
+    html += '<div class="qcard" data-qid="'+esc(qid)+'">' +
+      '<div class="qh">❓ AGENT 提问 · ' + esc((sInfo && sInfo.title) || (req.sessionID||"").slice(4,14) || "未知会话") + '</div>';
+    var qs = req.questions || [];
+    for (var i=0;i<qs.length;i++) {
+      var q = qs[i];
+      html += '<div class="qq" data-qi="'+i+'">';
+      if (q.header) html += '<div class="qqh">'+esc(q.header)+'</div>';
+      html += '<div class="qqt">'+esc(q.question||"")+'</div>';
+      var opts = q.options || [];
+      for (var j=0;j<opts.length;j++) {
+        var o = typeof opts[j] === "string" ? { label: opts[j] } : opts[j];
+        html += '<button class="qopt" data-label="'+esc(o.label||"")+'"><b>'+esc(o.label||"")+'</b>'+(o.description?'<span class="od">'+esc(o.description)+'</span>':"")+'</button>';
+      }
+      if (q.custom) html += '<input class="qcustom" placeholder="或输入自定义回答…">';
+      if (q.multiple) html += '<div class="qhint">◈ 可多选</div>';
+      html += '</div>';
+    }
+    html += '<div class="qbtns"><button class="q-submit">提交回答</button><button class="q-reject">跳过</button></div></div>';
+  }
+  el.innerHTML = html;
+  var cards = el.querySelectorAll(".qcard");
+  for (i=0;i<cards.length;i++) {
+    (function(card){
+      var opts = card.querySelectorAll(".qopt");
+      for (var k=0;k<opts.length;k++) opts[k].onclick = function(){
+        var qq = this.closest(".qq");
+        var multi = false;
+        try { multi = (S.questions[card.getAttribute("data-qid")].questions[parseInt(qq.getAttribute("data-qi"),10)] || {}).multiple; } catch(e){}
+        if (!multi) {
+          var sibs = qq.querySelectorAll(".qopt.sel");
+          for (var z=0;z<sibs.length;z++) sibs[z].classList.remove("sel");
+        }
+        this.classList.toggle("sel");
+      };
+      card.querySelector(".q-submit").onclick = async function(){
+        var answers = [];
+        var qqs = card.querySelectorAll(".qq");
+        for (var z2=0;z2<qqs.length;z2++) {
+          var ans = [];
+          var sels = qqs[z2].querySelectorAll(".qopt.sel");
+          for (var z3=0;z3<sels.length;z3++) ans.push(sels[z3].getAttribute("data-label"));
+          var cu = qqs[z2].querySelector(".qcustom");
+          if (cu && cu.value.trim()) ans.push(cu.value.trim());
+          answers.push(ans);
+        }
+        try {
+          await api("/question/" + card.getAttribute("data-qid") + "/reply", { method: "POST", body: JSON.stringify({ answers: answers }) });
+          delete S.questions[card.getAttribute("data-qid")];
+          renderQuestions();
+          toast("回答已提交");
+          markDirty();
+        } catch(e){ toast("提交失败"); }
+      };
+      card.querySelector(".q-reject").onclick = async function(){
+        try {
+          await api("/question/" + card.getAttribute("data-qid") + "/reject", { method: "POST" });
+          delete S.questions[card.getAttribute("data-qid")];
+          renderQuestions();
+          toast("已跳过");
+          markDirty();
+        } catch(e){ toast("操作失败"); }
+      };
+    })(cards[i]);
+  }
+}
+
+function renderBanner(){
+  var b = $("banner"), html = "";
+  for (var id in S.perms){
+    var p = S.perms[id];
+    var metaTxt = "";
+    if (p.metadata) { try { metaTxt = typeof p.metadata === "string" ? p.metadata : JSON.stringify(p.metadata); } catch(e){} }
+    html += '<div class="perm" data-pid="'+esc(id)+'" data-sid="'+esc(p.sessionID||"")+'">' +
+      '<div class="pt">⚠ 请求权限：'+esc(p.title || "未知操作")+'</div>' +
+      '<div class="pm">'+esc(metaTxt)+'</div>' +
+      '<div class="btns"><button class="p-yes" data-r="once">允许</button><button class="p-always" data-r="always">总是</button><button class="p-no" data-r="reject">拒绝</button></div></div>';
+  }
+  b.innerHTML = html;
+  var btns = b.querySelectorAll(".perm button");
+  for (var i=0;i<btns.length;i++) btns[i].onclick = function(){
+    var box = this.closest(".perm");
+    var pid = box.getAttribute("data-pid"), sid = box.getAttribute("data-sid"), r = this.getAttribute("data-r");
+    api("/session/" + sid + "/permissions/" + pid, { method: "POST", body: JSON.stringify({ response: r }) })
+      .then(function(){ delete S.perms[pid]; renderBanner(); toast("已处理"); markDirty(); })
+      .catch(function(){ toast("处理失败"); });
+  };
+}
+
+function sideOpenMap(){
+  try { return JSON.parse(localStorage.getItem("oc_side")||""); } catch(e){ return {}; }
+}
+function setSideOpen(k, v){
+  var m = sideOpenMap(); if (v) m[k] = 1; else delete m[k];
+  localStorage.setItem("oc_side", JSON.stringify(m));
+}
+function renderSidebar(){
+  var sig = Object.keys(S.tasks).map(function(k){ var t=S.tasks[k]; return k+t.stage+(S.curTask&&S.curTask.id===t.id?1:0)+((t.workers&&t.workers.length)||0)+((t.sessionID&&activityOf(t.sessionID))||""); }).sort().join("|") + JSON.stringify(sideOpenMap());
+  if (sig === renderSidebar._sig) return;
+  renderSidebar._sig = sig;
+  var list = Object.keys(S.tasks).map(function(k){ return S.tasks[k]; }).sort(function(a,c){ return c.updated - a.updated; });
+  list = list.filter(function(t){ return !isWorkerSession(S.sessions[t.sessionID]); });
+  var byStage = {};
+  for (var i=0;i<list.length;i++) byStage[list[i].stage] = (byStage[list[i].stage] || 0) + 1;
+  var om = sideOpenMap();
+  var ord = ["exec","review","plan","todo","done"];
+  var html = "";
+  for (var gi=0; gi<ord.length; gi++){
+    var key = ord[gi];
+    var arr = list.filter(function(t){ return t.stage === key; });
+    if (!arr.length) continue;
+    var open = (om[key] !== undefined) ? om[key] : (key === "exec");
+    html += '<div class="sgrp"><div class="sgh" data-g="'+key+'">'+FLOW[key].icon+' '+FLOW[key].name+' <span class="cnt">'+arr.length+'</span><span class="clr"></span>'+(open?"▴":"▾")+'</div>';
+    if (open) {
+      for (var j=0;j<arr.length;j++) {
+        var t = arr[j];
+        var run = taskActivity(t) === "run";
+        html += '<div class="srow'+(S.curTask && S.curTask.id===t.id?" on":"")+'" data-sid="'+t.id+'">'+(run?'<span class="dotr"></span>':'')+'<div class="st">'+esc(t.title)+'</div></div>';
+      }
+    }
+    html += '</div>';
+  }
+  if (!html) html = '<div class="empty">— 无任务 —</div>';
+  $("side").innerHTML = html;
+  var ghs = document.querySelectorAll(".sgh");
+  for (gi=0; gi<ghs.length; gi++) ghs[gi].onclick = function(){
+    var k = this.getAttribute("data-g");
+    var om2 = sideOpenMap();
+    setSideOpen(k, !om2[k]);
+    renderSidebar();
+  };
+  var rows = document.querySelectorAll(".srow");
+  for (gi=0; gi<rows.length; gi++) rows[gi].onclick = function(){
+    openDetail(this.getAttribute("data-sid"));
+  };
+}
+
+function closeDetail(){
+  $("ovl").classList.remove("open","fs");
+  S.curTask = null; S.fsMode = false;
+  $("board").classList.remove("gone","fading");
+  renderBoard._sig = "";
+  refreshAll();
+}
+
+async function openDetail(id){
+  var bd = $("board");
+  if (!S.curTask) {
+    bd.classList.add("fading");
+    setTimeout(function(){ bd.classList.add("gone"); bd.classList.remove("fading"); $("ovl").classList.add("open"); renderSidebar(); }, 170);
+  } else {
+    $("ovl").classList.add("open");
+    renderSidebar();
+  }
+  S.curTask = S.tasks[id];
+  S.curTab = "chat"; S.fsMode = false; S.viewSid = null;
+  $("ovl").classList.remove("fs");
+  $("ovtitle").textContent = S.curTask ? S.curTask.title : "";
+  var tabsHtml = '<div id="tabs"><button data-t="chat" class="on">对话</button>' +
+    ((S.curTask.workers || []).length ? '<button data-t="agents">◈ 分工</button>' : "") +
+    (S.curTask.acc ? '<button data-t="acc">✓ 验收</button>' : "") +
+    '<button data-t="todo">待办</button><button data-t="diff">改动</button></div><div id="dview"></div>';
+  $("ovbody").innerHTML = tabsHtml;
+  renderSidebar();
+  await refreshDetail(true);
+}
+$("ovbody").addEventListener("click", function(e){
+  var b = e.target.closest ? e.target.closest("#tabs button") : null;
+  if (!b) return;
+  S.curTab = b.getAttribute("data-t");
+  dbgLog("TAB→" + S.curTab);
+  if (S.curTab === "chat" && S.viewSid) { S.viewSid = null; refreshDetail._sig = ""; dbgLog("viewSid重置回主线"); }
+  var tb = document.querySelectorAll("#tabs button");
+  for (var j=0;j<tb.length;j++) tb[j].className = "";
+  b.className = "on";
+  refreshDetail(false);
+});
+function chatSig(){
+  var s = "";
+  for (var i=0;i<S.msgs.length;i++){
+    var m = S.msgs[i], info = m.info || {};
+    s += (info.id || i) + ":" + (info.role || "") + ":" + ((m.parts||[]).length) + ":";
+    var parts = m.parts || [];
+    for (var j=0;j<parts.length;j++){
+      var p = parts[j];
+      s += (p.type||"") + ((p.text||"").length) + (((p.state||{}).status)||"") + (((p.state||{}).title)||"") + (((p.state||{}).output||"").length);
+    }
+    s += ";";
+  }
+  var t = S.curTask;
+  if (t) {
+    s += "#" + t.id + (t.stage||"") + (t.merged?1:0) + ((t.workers||[]).map(function(w){ return w.sessionID + (activityOf(w.sessionID)||""); }).join(",")) + (S.viewSid||"") + ((S.queue[t.sessionID]||[]).length);
+  }
+  return s;
+}
+function hasTextSelection(){
+  var sel = window.getSelection ? window.getSelection() : null;
+  return !!sel && !sel.isCollapsed;
+}
+
+async function fetchWorkerInfos(){
+  var t = S.curTask;
+  if (!t || t.mode !== "multi") return;
+  var ws = t.workers || [];
+  if (!ws.length) return;
+  var pending = ws.length;
+  for (var i=0;i<ws.length;i++) {
+    (function(sid){
+      api("/session/" + sid + "/message?limit=6").then(function(msgs){
+        var info = { seen: 0, running: "", lastText: "", out: "", toolStart: 0 };
+        var partsAll = [];
+        for (var k=0;k<(msgs||[]).length;k++){
+          var mm = msgs[k], im = mm.info || {};
+          var ts = (im.time && (im.time.updated || im.time.created)) || 0;
+          if (ts > info.seen) info.seen = ts;
+          if (im.model) info.model = im.model;
+          var parts = mm.parts || [];
+          for (var p=0;p<parts.length;p++){
+            var pt = parts[p];
+            partsAll.push(pt);
+            if (pt.type === "tool" && pt.state && (pt.state.status === "running" || pt.state.status === "pending")) {
+              info.running = (pt.state.title || pt.state.name || pt.tool || "工具调用") + "";
+              info.out = toolTail(pt);
+              info.toolStart = (pt.time && (pt.time.updated || pt.time.created)) || 0;
+            }
+          }
+        }
+        var lastTool = -1;
+        for (k=0;k<partsAll.length;k++) if (partsAll[k].type === "tool") lastTool = k;
+        var tx = [];
+        for (k=0;k<partsAll.length;k++) if (partsAll[k].type === "text" && partsAll[k].text && k > lastTool) tx.push(partsAll[k].text);
+        info.lastText = tx.join(" ").replace(/\s+/g," ").slice(0, 1200);
+        S.workerInfo[sid] = info;
+      }).catch(function(){}).finally(function(){
+        if (--pending <= 0 && S.curTab === "agents" && S.curTask) updateAgentsLive();
+      });
+    })(ws[i].sessionID);
+  }
+}
+function renderAccView(){
+  var t = S.curTask;
+  var dv = document.getElementById("dview");
+  if (!dv || !t || !t.acc) return;
+  var acc = t.acc;
+  var rounds = acc.rounds || [];
+  var sig = t.id + ":" + JSON.stringify(acc);
+  if (sig === renderAccView._sig) return;
+  renderAccView._sig = sig;
+  var html = '<div style="padding:14px 14px 6px;font-size:12px;color:var(--dim);letter-spacing:1px">验收流水线 · ' + (acc.done ? "全部通过" : (acc.pause ? "已暂停（需人工介入）" : (acc.status === "waiting_human" ? "等待人工终审" : "进行中"))) + '</div>';
+  html += '<div class="accflow">';
+  for (var i=0;i<rounds.length;i++) {
+    var r = rounds[i];
+    var isHuman = r.mode === "human";
+    var st = "pending";
+    if (i < (acc.cur||0)) st = "pass";
+    else if (i === (acc.cur||0) && !acc.done) st = acc.pause ? "fail" : "current";
+    if (acc.done) st = "pass";
+    var icon = st === "pass" ? "✓" : (st === "current" ? (isHuman ? "◉" : "▶") : (st === "fail" ? "✗" : (isHuman ? "◎" : "○")));
+    var name = esc(r.name || (isHuman ? "人工验收" : "检查" + (i+1)));
+    html += '<div class="accstep ' + st + (isHuman ? " human" : "") + '"><div class="acci ' + st + '">' + icon + '</div><div class="accn">' + name + '</div>' + (r.maxRetry ? '<div class="accr">' + ((acc.cur||0) === i && !acc.done ? ("重试 " + (acc.attempts||0) + "/" + r.maxRetry) : (r.intervalMin + "min")) + '</div>' : "") + '</div>';
+    if (i < rounds.length - 1) html += '<div class="accline ' + (i < (acc.cur||0) || acc.done ? "done" : "") + '"></div>';
+  }
+  html += '</div>';
+  var hist = (acc.history || []).slice().reverse();
+  if (hist.length) {
+    html += '<div style="padding:14px 14px 4px;font-size:11px;color:var(--mut);letter-spacing:2px">检查记录（新→旧）</div>';
+    for (var h=0; h<Math.min(hist.length, 12); h++) {
+      var e = hist[h];
+      html += '<div class="acchist"><span class="' + (e.pass ? "hok" : "hfail") + '">' + (e.pass ? "✓" : "✗") + '</span><span class="hmeta">R' + (e.r+1) + ' · ' + fmtRel(e.t) + '</span><div class="hout">' + esc(e.out || "") + '</div></div>';
+    }
+  }
+  html += '<div style="display:flex;gap:8px;padding:12px 14px;flex-wrap:wrap">';
+  if (acc.status === "waiting_human") {
+    html += '<button class="abtn go" id="accpass" style="padding:10px 22px">✓ 通过并完成</button>';
+    html += '<button class="abtn warn" id="accreject" style="padding:10px 22px">✎ 打回修改</button>';
+  } else if (!acc.done && !acc.pause) {
+    html += '<button class="abtn" id="accnow" style="padding:10px 22px">⟳ 立即检查</button>';
+  }
+  if (acc.pause) html += '<button class="abtn" id="accresume" style="padding:10px 22px">▶ 恢复验收</button>';
+  html += '</div>';
+  dv.innerHTML = html;
+  var now = $("accnow");
+  if (now) now.onclick = function(){ if (t.acc) { t.acc.nextAt = 0; renderAccView._sig = ""; fetch("/tasks/" + t.id, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ acc: t.acc }) }).then(function(){ toast("已触发服务端立即检查"); }); } };
+  var rs = $("accresume");
+  if (rs) rs.onclick = function(){ if (t.acc) { t.acc.pause = 0; t.acc.attempts = 0; renderAccView._sig = ""; tApi("PATCH", { acc: t.acc }, t.id); refreshAll(); } };
+  var ap = $("accpass");
+  if (ap) ap.onclick = function(){ moveTask(t.id, "done", null, true); };
+  var ar = $("accreject");
+  if (ar) ar.onclick = function(){ openRework(t.id); };
+}
+
+function renderAgentsOverview(){
+  var t = S.curTask;
+  if (!t) return;
+  var dv = document.getElementById("dview");
+  if (!dv) return;
+  var ws = t.workers || [];
+  if (!ws.length) { dv.innerHTML = '<div class="empty">暂无分工智能体</div>'; return; }
+  var active = [], archived = [];
+  for (var ai=0;ai<ws.length;ai++) {
+    var wAct = activityOf(ws[ai].sessionID);
+    if (t.merged && wAct !== "run") archived.push(ws[ai]);
+    else active.push(ws[ai]);
+  }
+  var html = '<div style="padding:10px 14px 0;font-size:11px;color:var(--mut);letter-spacing:1px">'+(t.merged ? "已汇总 · 主线完成最终整合" : "分工执行中 · 全部完成后自动汇总")+' · 点卡片展开详情</div>';
+  if (active.length) html += '<div class="agrid" data-task="'+t.id+'">';
+  for (ai=0;ai<active.length;ai++) {
+    var w = active[ai];
+    html += '<div class="acard" data-wsid="'+w.sessionID+'">' +
+      '<div class="ah"><span class="arole">◈ '+esc(w.role)+'</span><span class="chip none">…</span></div>' +
+      '<div class="alive"></div>' +
+      '<div class="progwrap"></div>' +
+      '<div class="asnip"></div>' +
+      '<div class="axbody"></div>' +
+      '<div class="abtns"><button class="abtn" data-mini="'+w.sessionID+'">⛶ 小窗</button><span data-wab-holder="'+w.sessionID+'"></span></div>' +
+      '</div>';
+  }
+  if (active.length) html += '</div>';
+  else html += '<div class="empty" style="padding:14px">无进行中的分工</div>';
+  if (archived.length) {
+    html += '<div class="sgrp" style="margin:10px 12px;border:1px dashed var(--ln);border-radius:8px">' +
+      '<div class="sgh" id="archTgl" style="cursor:pointer">📦 已归档分工（已并入主线）<span class="cnt">'+archived.length+'</span><span class="clr"></span>'+(S.archOpen?"▴":"▾")+'</div>';
+    if (S.archOpen) {
+      for (ai=0;ai<archived.length;ai++) {
+        var aw = archived[ai];
+        var awi = S.workerInfo[aw.sessionID] || {};
+        var snip = awi.lastText || "";
+        html += '<div style="padding:8px 12px;border-top:1px dashed var(--ln)"><div style="display:flex;gap:8px;align-items:center"><span style="color:var(--ok)">✓</span><b style="flex:1;font-size:12px;color:var(--dim)">'+esc(aw.role)+'</b><button class="abtn" data-mini="'+aw.sessionID+'">⛶ 小窗</button></div>'+(snip?'<div class="asnip" style="margin-top:4px">'+esc(snip.slice(0,160))+'</div>':"")+'</div>';
+      }
+    }
+    html += '</div>';
+  }
+  dv.innerHTML = html;
+  var archBtn = document.getElementById("archTgl");
+  if (archBtn) archBtn.onclick = function(){ S.archOpen = !S.archOpen; renderAgentsOverview(); };
+  var cards2 = dv.querySelectorAll(".acard");
+  for (ai=0;ai<cards2.length;ai++) cards2[ai].addEventListener("click", function(e){
+    if (e.target.getAttribute("data-mini") || e.target.getAttribute("data-wab")) return;
+    this.classList.toggle("xopen");
+  });
+  var mb = dv.querySelectorAll("[data-mini]");
+  for (ai=0;ai<mb.length;ai++) mb[ai].onclick = function(e){
+    e.stopPropagation();
+    openMini(this.getAttribute("data-mini"));
+  };
+  updateAgentsLive();
+  if (active.length) fetchWorkerInfos();
+}
+function updateAgentsLive(){
+  var t = S.curTask;
+  if (!t) return;
+  var cards = document.querySelectorAll(".acard[data-wsid]");
+  for (var i=0;i<cards.length;i++) {
+    var card = cards[i];
+    var sid = card.getAttribute("data-wsid");
+    var w = null;
+    var wl = t.workers || [];
+    for (var j=0;j<wl.length;j++) if (wl[j].sessionID === sid) w = wl[j];
+    if (!w) continue;
+    var act = activityOf(sid);
+    var wi = S.workerInfo[sid] || { seen: 0, running: "", lastText: "", out: "", toolStart: 0 };
+    var since = wi.seen ? fmtRel(wi.seen) : "—";
+    var stuck = (act === "run" && wi.seen && Date.now() - wi.seen > 180000);
+    var runSecs = (act === "run" && wi.toolStart) ? Math.round((Date.now() - wi.toolStart)/1000) : 0;
+    card.className = "acard " + (stuck ? "warn" : (act !== "run" ? "done" : "")) + (card.classList.contains("xopen") ? " xopen" : "");
+    var chip = card.querySelector(".ah .chip");
+    if (chip) {
+      if (act === "run") { chip.className = "chip " + (stuck ? "rec" : "busy"); chip.textContent = stuck ? "⚠ 疑似卡住" : "● 运行"; }
+      else { chip.className = "chip idle"; chip.textContent = "○ 空闲"; }
+    }
+    var alive = card.querySelector(".alive");
+    var mshort = modelShort(wi.model);
+    var curTodo = "";
+    var tl = S.sessions[sid] && S.sessions[sid]._todo;
+    if (tl) for (var q=0;q<tl.length;q++) if (tl[q].status === "in_progress") { curTodo = tl[q].content; break; }
+    if (alive) {
+      var doingTxt = "";
+      if (act === "run") {
+        doingTxt = (curTodo ? '<div style="margin-bottom:3px;color:var(--tx)">🎯 ' + esc(curTodo) + '</div>' : "") +
+          '<span style="color:var(--mut)">工具:</span> <b>'+esc(wi.running || "运行中…")+'</b>' + (runSecs > 3 ? ' <span style="color:var(--mut)">· 已跑 '+runSecs+'s</span>' : "");
+      } else doingTxt = (curTodo ? '⏸ 暂停在: ' + esc(curTodo) : '已停止/完成');
+      alive.innerHTML = '<div class="adoing">'+doingTxt+(mshort?' <span style="color:var(--mut);font-size:10px">· '+esc(mshort)+'</span>':"")+'<br><span style="color:var(--mut)">最后活动: '+since+'</span></div>' + (act === "run" && wi.out ? '<div class="aout">'+esc(wi.out)+'</div>' : "");
+    }
+    var todo = S.sessions[sid] && S.sessions[sid]._todo;
+    var pw = card.querySelector(".progwrap");
+    if (pw) {
+      if (todo && todo.length) {
+        var done = todo.filter(function(x){ return x.status === "completed"; }).length;
+        pw.innerHTML = '<div class="bar"><i style="width:'+Math.round(done/todo.length*100)+'%"></i></div><div class="tmeta">TODO '+done+'/'+todo.length+'</div>';
+      } else pw.innerHTML = "";
+    }
+    var sn = card.querySelector(".asnip");
+    if (sn) sn.textContent = wi.lastText ? wi.lastText.slice(0,120) : "";
+    var xb = card.querySelector(".axbody");
+    if (xb && wi.lastText) {
+      var ticon = { completed:"✅", in_progress:"🔵", pending:"⬜", cancelled:"❌" };
+      var xh = '<div class="axrep">'+esc(wi.lastText)+'</div>';
+      if (todo && todo.length) {
+        xh += '<div class="axtodo">';
+        for (var ti=0;ti<todo.length;ti++) xh += '<div class="todo '+todo[ti].status+'" style="padding:5px 0;font-size:11.5px;border-bottom:none"><div class="st">'+(ticon[todo[ti].status]||"⬜")+'</div><div class="ct">'+esc(todo[ti].content)+'</div></div>';
+        xh += '</div>';
+      }
+      var wSess = S.sessions[sid] || {};
+      xh += '<div class="axmeta">'+esc(sid.slice(4,14))+' · 更新 '+since+(wSess.directory?' · '+esc(wSess.directory.split(/[\\/]/).pop()):"")+'</div>';
+      xb.innerHTML = xh;
+    }
+    var holder = card.querySelector('[data-wab-holder="'+sid+'"]');
+    if (holder) holder.innerHTML = act === "run" ? '<button class="abtn" data-wab="'+sid+'" style="border-color:var(--er);color:var(--er)">■ 中断</button>' : "";
+    var wakeHolder = card.querySelector('[data-wake-holder="'+sid+'"]');
+    if (!wakeHolder) {
+      var btnrow = card.querySelector(".abtns");
+      if (btnrow) {
+        var wh = document.createElement("span");
+        wh.setAttribute("data-wake-holder", sid);
+        btnrow.appendChild(wh);
+        wakeHolder = wh;
+      }
+    }
+    if (wakeHolder) wakeHolder.innerHTML = (act === "run" && !stuck) ? "" : '<button class="abtn" data-wake="'+sid+'" style="border-color:var(--wn);color:var(--wn)">⟳ 唤醒</button>';
+  }
+  var wb = document.querySelectorAll("[data-wake]");
+  for (i=0;i<wb.length;i++) {
+    var wbtn = wb[i];
+    if (wbtn._bound) continue;
+    wbtn._bound = true;
+    wbtn.addEventListener("click", function(e){
+      e.stopPropagation();
+      var sid2 = this.getAttribute("data-wake");
+      toast("唤醒中：中止卡死回合 + 续跑指令…");
+      abortAnywhere(sid2).then(function(){
+        return new Promise(function(r){ setTimeout(r, 1200); });
+      }).then(function(){
+        return sendMsg(sid2, RESUME_MSG, sendOpts());
+      }).then(function(){ toast("已唤醒"); markDirty(); })
+        .catch(function(){ toast("唤醒失败"); });
+    });
+  }
+  var ab = document.querySelectorAll("[data-wab]");
+  for (i=0;i<ab.length;i++) {
+    var btn = ab[i];
+    if (btn._bound) continue;
+    btn._bound = true;
+    btn.addEventListener("click", function(e){
+      e.stopPropagation();
+      var sid2 = this.getAttribute("data-wab");
+      toast("正在多通道发送中止信号…");
+      abortAnywhere(sid2).then(function(h){ toast(h > 0 ? "已中止（命中 " + h + " 个实例）" : "中止失败：会话不在已知实例上"); markDirty(); });
+    });
+  }
+}
+
+function hasTextSelection(){
+  var sel = window.getSelection ? window.getSelection() : null;
+  if (!sel || sel.isCollapsed) return false;
+  var dv = document.getElementById("dview");
+  if (!dv || !sel.anchorNode) return false;
+  return dv.contains(sel.anchorNode) || dv.contains(sel.focusNode);
+}
+
+async function refreshDetail(full){
+  if (!S.curTask) return;
+  var t = S.curTask;
+  if (S.curTab !== refreshDetail._lastTab) { refreshDetail._sig = ""; dbgLog("渲染:" + S.curTab); }
+  refreshDetail._lastTab = S.curTab;
+  if (S.curTab === "acc") { renderAccView(); return; }
+  if (S.curTab === "agents") {
+    renderAgentsOverview();
+    $("abort").style.display = t.sessionID ? "" : "none";
+    $("ovabort").style.display = t.sessionID ? "" : "none";
+    $("ovfork").style.display = t.sessionID ? "" : "none";
+    $("ovset").style.display = t.sessionID ? "" : "none";
+    $("ovmulti").style.display = (t.mode !== "multi" && t.stage === "exec") ? "" : "none";
+    return;
+  }
+  var sid = S.viewSid || t.sessionID;
+  if (!sid) {
+    var dv0 = document.getElementById("dview");
+    if (dv0) dv0.innerHTML = '<div class="empty">'+((t.workers||[]).length ? "分工智能体执行中… 全部完成后自动汇总" : "尚未创建会话<br>把任务移到「计划」或「执行」即可启动")+'</div>';
+    $("abort").style.display = "none";
+    $("ovabort").style.display = "none";
+    return;
+  }
+  try {
+    var myTok = refreshDetail._tok = (refreshDetail._tok || 0) + 1;
+    S.msgs = (await api("/session/" + sid + "/message?limit=200")) || [];
+    if (S.curTab !== "chat") S.todos = (await api("/session/" + sid + "/todo")) || [];
+    if (myTok !== refreshDetail._tok) return;
+    var dv = document.getElementById("dview");
+    if (!dv) return;
+    var sc = $("ovbody");
+    var cSig = chatSig();
+    var skipRender = !full && (cSig === refreshDetail._sig || hasTextSelection());
+    refreshDetail._sig = cSig;
+    if (S.curTab === "chat") {
+      if (!skipRender) {
+        var keepTop = sc.scrollTop;
+        var wasNear = sc.scrollHeight - sc.scrollTop - sc.clientHeight < 160;
+        dv.innerHTML = renderChat();
+        bindChatExtras(dv);
+        if (full || wasNear) {
+          sc.scrollTop = sc.scrollHeight;
+          requestAnimationFrame(function(){ sc.scrollTop = sc.scrollHeight; });
+          setTimeout(function(){ if (S.curTask) sc.scrollTop = sc.scrollHeight; }, 380);
+        }
+        else sc.scrollTop = keepTop;
+      }
+    }
+    else if (S.curTab === "todo") dv.innerHTML = renderTodos();
+    else {
+      dv.innerHTML = '<div class="empty">加载 git 改动…</div>';
+      loadDiffView().then(function(h){ if (S.curTab === "diff") dv.innerHTML = h; });
+    }
+    var sc2 = $("ovbody");
+    if (full && !skipRender) {
+      sc2.scrollTop = sc2.scrollHeight;
+      requestAnimationFrame(function(){ sc2.scrollTop = sc2.scrollHeight; });
+    }
+    else if (!skipRender) {
+      var nb = sc2.scrollHeight - sc2.scrollTop - sc2.clientHeight < 140;
+      if (nb) sc2.scrollTop = sc2.scrollHeight;
+    }
+    $("abort").style.display = sid ? "" : "none";
+    $("ovabort").style.display = sid ? "" : "none";
+    $("ovfork").style.display = sid ? "" : "none";
+    $("ovset").style.display = sid ? "" : "none";
+    $("ovmulti").style.display = (t.mode !== "multi" && t.stage === "exec") ? "" : "none";
+  } catch(e){ console.warn("RD-ERR:", e && e.message, e && e.stack && e.stack.split("\n")[1]); }
+}
+function bindChatExtras(dv){
+  var vsb = dv.querySelectorAll("[data-vs]");
+  for (var v=0; v<vsb.length; v++) vsb[v].onclick = function(){
+    S.viewSid = this.getAttribute("data-vs") || null;
+    refreshDetail._tok = (refreshDetail._tok||0)+1;
+    refreshDetail(true);
+  };
+  var subs = dv.querySelectorAll(".sub");
+  for (var s2=0;s2<subs.length;s2++) subs[s2].addEventListener("click", function(e){
+    if (e.target.tagName === "A") return;
+    this.classList.toggle("xopen");
+  });
+  var rvs = dv.querySelectorAll("[data-revert]");
+  for (s2=0;s2<rvs.length;s2++) rvs[s2].onclick = function(e){
+    e.stopPropagation();
+    var mid = this.getAttribute("data-revert");
+    var sid2 = S.viewSid || (S.curTask && S.curTask.sessionID);
+    if (!mid || !sid2) return;
+    if (!confirm("回滚到此消息之前？（之后的对话将从会话中撤销）")) return;
+    api("/session/" + sid2 + "/revert", { method: "POST", body: JSON.stringify({ messageID: mid }) })
+      .then(function(){ toast("已回滚"); refreshDetail._sig = ""; markDirty(); })
+      .catch(function(){ toast("回滚失败"); });
+  };
+}
+
+function renderChat(){
+  var sid = S.viewSid || (S.curTask ? S.curTask.sessionID : null);
+  if (!S.msgs.length) return '<div class="empty">暂无消息</div>';
+  var html = "";
+  var t = S.curTask;
+  if (t && (t.workers || []).length) {
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px dashed var(--ln)">';
+    html += '<button class="abtn'+(S.viewSid?"":" go")+'" data-vs="">⌘ 主线'+(t.merged?"（已汇总）":"")+'</button>';
+    if (t.mergeSid) html += '<button class="abtn'+(S.viewSid===t.mergeSid?" go":"")+'" data-vs="'+t.mergeSid+'">📦 汇总'+(activityOf(t.mergeSid)==="run"?" ●":"")+'</button>';
+    var wl = t.workers || [];
+    for (var wj=0;wj<wl.length;wj++) {
+      var wAct2 = activityOf(wl[wj].sessionID);
+      html += '<button class="abtn'+(S.viewSid===wl[wj].sessionID?" go":"")+'" data-vs="'+wl[wj].sessionID+'">◈ '+esc(wl[wj].role)+(wAct2==="run"?" ●":"")+'</button>';
+    }
+    html += '</div>';
+  }
+  if (S.viewSid) html += '<div style="margin:0 12px 6px;font-size:11px;color:var(--wn);letter-spacing:1px">⚠ 正在查看分工智能体对话（只读）</div>';
+  for (var i=0;i<S.msgs.length;i++){
+    var m = S.msgs[i], info = m.info || {};
+    var parts = m.parts || [];
+    var lastTool = -1;
+    for (var j=0;j<parts.length;j++) if (parts[j].type === "tool") lastTool = j;
+    var segs = [];
+    for (j=0;j<parts.length;j++){
+      var p = parts[j];
+      if (p.type === "text" && p.text) segs.push({ kind:"text", text:p.text, final:(j > lastTool) });
+      else if (p.type === "tool") segs.push({ kind:"tool", part:p });
+    }
+    if (!segs.length) continue;
+    if (info.role === "user") {
+      var ut = segs.filter(function(x){ return x.kind === "text"; }).map(function(x){ return x.text; }).join("\n\n");
+      if (ut) html += '<div class="msg user"><div class="who">OPERATOR · '+fmtTime(info.time && info.time.created)+'</div>'+mdRender(ut)+'</div>';
+      continue;
+    }
+    var intro = "";
+    var finalTxt = "";
+    for (j=0;j<segs.length;j++){
+      var sg2 = segs[j];
+      if (sg2.kind !== "text") continue;
+      if (sg2.final && j > lastTool) finalTxt = sg2.text;
+      else intro += mdRender(sg2.text);
+    }
+    var toolHtml = "";
+    for (j=0;j<segs.length;j++){
+      var sg3 = segs[j];
+      if (sg3.kind !== "tool") continue;
+      var t = sg3.part, stt = (t.state || {}).status || "pending";
+      var ttl = (t.state && (t.state.title || t.state.name)) || "";
+      var inp = "";
+      try { inp = t.state && t.state.input ? JSON.stringify(t.state.input).slice(0,90) : ""; } catch(e){}
+      var isAgent = (t.tool === "task");
+      var fullOut = "";
+      try { fullOut = String(((t.state||{}).output)||"").slice(0, 3000); } catch(e){}
+      toolHtml += '<div class="sub '+(isAgent?"agent ":"")+(stt==="running"?"running":"")+'" style="cursor:pointer"><div class="t1"><span>'+(isAgent?"◈":"⚙")+'</span><span class="tn">'+esc(t.tool||"tool")+'</span><span class="tt">'+esc(ttl||inp)+'</span><span class="ts '+stt+'">'+({completed:"OK",running:"RUN",pending:"WAIT",error:"ERR"}[stt]||stt)+'</span></div>'+(stt==="running"&&toolTail(t)?('<pre style="margin:6px 0 0;background:var(--code-bg);border-radius:5px;padding:6px 8px;font-size:11px;max-height:110px;overflow:hidden;white-space:pre-wrap;word-break:break-all;color:#8fb8d8">'+esc(toolTail(t))+'<span style="color:var(--cy)">▌</span></pre>'):"")+(fullOut?'<pre class="fullout">'+esc(fullOut)+'</pre>':"")+'</div>';
+    }
+    html += '<div class="msg '+(info.role === "user" ? "user" : "assistant")+'" data-mid="'+esc(info.id||"")+'"><div class="who">'+(info.role === "user" ? "OPERATOR" : "AGENT")+' · '+fmtTime(info.time && info.time.created)+(modelShort(info.model)?' · <span style="color:var(--mut)">'+esc(modelShort(info.model))+'</span>':"")+(info.role !== "user" && info.id ? ' <button class="rvbtn" data-revert="'+esc(info.id)+'" title="回滚到此消息之前">↩</button>' : "")+'</div>' +
+      (intro ? '<div class="mseg">'+intro+'</div>' : "") +
+      toolHtml +
+      (finalTxt ? '<div class="mseg final">'+mdRender(finalTxt)+'</div>' : "") +
+      '</div>';
+  }
+  if (sid) {
+    var kids = Object.keys(S.sessions).filter(function(k){ return S.sessions[k].parentID === sid; });
+    var fresh = [], stale = 0;
+    for (var k2=0;k2<kids.length;k2++) {
+      var ku = (S.sessions[kids[k2]].time && S.sessions[kids[k2]].time.updated) || 0;
+      if (ku > Date.now() - 2*3600*1000) fresh.push(kids[k2]); else stale++;
+    }
+    for (var ki=0;ki<fresh.length;ki++){
+      var ks = S.sessions[fresh[ki]];
+      var kact = activityOf(ks.id);
+      html += '<div class="sub agent '+(kact==="run"?"running":"")+'"><div class="t1"><span>◈</span><span class="tn">子AGENT</span><span class="tt">'+esc(ks.title || ks.id.slice(4,14))+'</span><span class="ts '+(kact==="run"?"running":"completed")+'">'+(kact==="run"?"RUN":"IDLE")+'</span></div></div>';
+    }
+    if (stale) html += '<div style="margin:4px 12px;font-size:10.5px;color:var(--mut);letter-spacing:1px">· 另有 '+stale+' 个较早的子AGENT已归档</div>';
+  }
+  if (S.curTask && S.curTask.sessionID && S.queue[S.curTask.sessionID] && S.queue[S.curTask.sessionID].length) {
+    var q = S.queue[S.curTask.sessionID];
+    for (var qi=0;qi<q.length;qi++) {
+      html += '<div class="msg user"><div class="who">OPERATOR · <span class="qtag">⏳ QUEUED #' + (qi+1) + '</span></div>'+mdRender(q[qi])+'</div>';
+    }
+  }
+  return html;
+}
+function renderTodos(){
+  if (!S.todos.length) return '<div class="empty">暂无待办清单</div>';
+  var done = S.todos.filter(function(t){ return t.status === "completed"; }).length;
+  var html = '<div style="padding:12px 14px 4px;font-size:11px;color:var(--mut);letter-spacing:1px">进度 '+done+'/'+S.todos.length+'</div><div class="bar" style="margin:8px 14px"><i style="width:'+Math.round(done/S.todos.length*100)+'%"></i></div>';
+  var icon = { completed: "✅", in_progress: "🔵", pending: "⬜", cancelled: "❌" };
+  for (var i=0;i<S.todos.length;i++){
+    var t = S.todos[i];
+    html += '<div class="todo '+t.status+'"><div class="st">'+(icon[t.status]||"⬜")+'</div><div class="ct">'+esc(t.content)+(t.status === "in_progress" ? ' <span style="color:var(--cy);font-size:10px">RUN…</span>' : "")+'</div></div>';
+  }
+  return html;
+}
+async function loadDiffView(){
+  var t = S.curTask;
+  if (!t || !t.sessionID) return '<div class="empty">无关联会话</div>';
+  var dir = (S.sessions[t.sessionID] || {}).directory || "";
+  try {
+    var r = await fetch("/fs/git?dir=" + encodeURIComponent(dir));
+    var g = await r.json();
+    if (!g.repo) {
+      var sm = (S.sessions[t.sessionID] || {}).summary || {};
+      return '<div class="empty">该目录不是 git 仓库<br><span style="font-size:11px;color:var(--mut)">'+esc(dir)+'</span><br><br>本会话累计改动：<span style="color:var(--ok)">+'+(sm.additions||0)+'</span> / <span style="color:var(--er)">-'+(sm.deletions||0)+'</span> 行，'+(sm.files||0)+' 个文件</div>';
+    }
+    var h = '<div style="padding:10px 14px 4px;font-size:11px;color:var(--mut);letter-spacing:1px">'+esc(g.branch)+' · '+g.files.length+' 个文件</div>';
+    if (!g.files.length) return h + '<div class="empty">工作区干净，无未提交改动</div>';
+    for (var i=0;i<g.files.length;i++){
+      var f = g.files[i];
+      h += '<div class="dfile"><span style="color:'+(f.status==="??"?"var(--ok)":"var(--wn)")+'">'+esc(f.status)+'</span><span style="flex:1">'+esc(f.path)+'</span>'+(f.add!=null?'<span class="add">+'+f.add+'</span>':'')+(f.del!=null?'<span class="del">-'+f.del+'</span>':'')+'</div>';
+    }
+    return h;
+  } catch(e){ return '<div class="empty">读取 git 状态失败</div>'; }
+}
+
+var IMG = [".png",".jpg",".jpeg",".gif",".webp"];
+function fileIcon(n, isDir){
+  if (isDir) return "▣";
+  var e = n.slice(n.lastIndexOf(".")).toLowerCase();
+  if (IMG.indexOf(e) >= 0) return "◨";
+  if (e === ".apk") return "⬢";
+  return "▢";
+}
+async function fsNav(p){
+  S.fsMode = true; S.curTask = null;
+  $("ovl").classList.add("open","fs");
+  var bd = $("board");
+  if (!bd.classList.contains("gone")) {
+    bd.classList.add("fading");
+    setTimeout(function(){ bd.classList.add("gone"); bd.classList.remove("fading"); }, 170);
+  }
+  $("ovtitle").textContent = "FILE TRANSFER";
+  $("abort").style.display = "none";
+  try {
+    var r = await fetch("/fs/list?path="+encodeURIComponent(p||""));
+    if (!r.ok) throw new Error("HTTP "+r.status);
+    var data = await r.json();
+    var parts = data.path.split("\\");
+    var html = '<div class="crumb">';
+    for (var i=0;i<parts.length;i++){
+      if (!parts[i]) continue;
+      var sub = parts.slice(0,i+1).join("\\");
+      html += "<span class='d' data-p='"+esc(sub)+"'>"+esc(parts[i])+"</span> › ";
+    }
+    html += "</div>";
+    for (i=0;i<data.entries.length;i++){
+      var e = data.entries[i];
+      var fp = data.path + "\\" + e.name;
+      if (e.dir) html += '<div class="frow" data-nav="'+esc(fp)+'"><span class="fi">▣</span><span class="fn">'+esc(e.name)+'</span><span class="go">OPEN</span></div>';
+      else html += '<div class="frow" data-file="'+esc(fp)+'" data-name="'+esc(e.name)+'"><span class="fi">'+fileIcon(e.name,false)+'</span><span class="fn">'+esc(e.name)+'</span><span class="fs">'+fmtSize(e.size)+'</span><span class="go">GET</span></div>';
+    }
+    html += '<div class="upbar"><button id="upBtn">⬆ 上传文件到当前目录</button></div><input type="file" id="fup" multiple style="display:none">';
+    $("ovbody").innerHTML = html;
+    var navs = document.querySelectorAll("[data-nav]");
+    for (i=0;i<navs.length;i++) navs[i].onclick = function(){ fsNav(this.getAttribute("data-nav")); };
+    var crs = document.querySelectorAll(".crumb .d");
+    for (i=0;i<crs.length;i++) crs[i].onclick = function(){ fsNav(this.getAttribute("data-p")); };
+    var fls = document.querySelectorAll("[data-file]");
+    for (i=0;i<fls.length;i++) fls[i].onclick = function(){
+      var fp = this.getAttribute("data-file"), nm = this.getAttribute("data-name");
+      var ext = nm.slice(nm.lastIndexOf(".")).toLowerCase();
+      if (IMG.indexOf(ext) >= 0) {
+        if (this.nextSibling && this.nextSibling.className === "imgprev") { this.nextSibling.remove(); return; }
+        var im = document.createElement("img");
+        im.className = "imgprev";
+        im.src = tokQS("/fs/file?path="+encodeURIComponent(fp));
+        this.after(im);
+      } else {
+        location.href = tokQS("/fs/file?path="+encodeURIComponent(fp)+"&dl=1");
+        toast("开始下载 "+nm);
+      }
+    };
+    $("upBtn").onclick = function(){ $("fup").click(); };
+    $("fup").onchange = async function(){
+      var files = this.files;
+      var cur = data.path;
+      for (var j=0;j<files.length;j++){
+        try {
+          var r2 = await fetch("/fs/upload?dir="+encodeURIComponent(cur), { method: "POST", headers: { "x-filename": encodeURIComponent(files[j].name) }, body: files[j] });
+          if (r2.status !== 200) throw new Error("HTTP "+r2.status);
+          toast("已上传: "+files[j].name);
+        } catch(err){ toast("上传失败: "+files[j].name); }
+      }
+      fsNav(cur);
+    };
+  } catch(e){ toast("读取目录失败"); }
+}
+
+$("newBtn").onclick = function(){
+  S.editing = null;
+  $("dtitle").value = ""; $("ddesc").value = "";
+  $("dmulti").checked = false;
+  $("acced").value = "none";
+  $("accjson").value = "";
+  $("accjson").style.display = "none";
+  $("dlg").style.display = "flex";
+  $("dtitle").focus();
+};
+$("acced").onchange = function(){
+  var v = this.value;
+  $("accjson").style.display = (v === "custom") ? "" : "none";
+  if (v === "normal") $("accjson").value = JSON.stringify(ACC_PRESETS.normal, null, 1);
+  else if (v === "rl") $("accjson").value = JSON.stringify(ACC_PRESETS.rl, null, 1);
+};
+$("dcreate").onclick = async function(){
+  var t = $("dtitle").value.trim();
+  if (!t) { toast("请输入标题"); return; }
+  var accv = null;
+  var accsel = $("acced").value;
+  try {
+    if (accsel === "custom") accv = JSON.parse($("accjson").value);
+    else if (accsel !== "none") accv = ACC_PRESETS[accsel];
+  } catch(e){ toast("验收计划 JSON 无效"); return; }
+  if (S.editing) {
+    var patch = { title: t, desc: $("ddesc").value.trim() };
+    if (accv !== null) patch.acc = accv;
+    await tApi("PATCH", patch, S.editing);
+    if (S.tasks[S.editing]) { S.tasks[S.editing].title = t; S.tasks[S.editing].desc = $("ddesc").value.trim(); S.tasks[S.editing].updated = Date.now(); }
+    if (S.curTask) $("ovtitle").textContent = t;
+    S.editing = null;
+  } else {
+    await tApi("POST", { title: t, desc: $("ddesc").value.trim(), mode: $("dmulti").checked ? "multi" : "single", wn: parseInt($("dcount").value, 10) || 3, acc: accv || undefined });
+  }
+  renderBoard._sig = "";
+  $("dlg").style.display = "none";
+  refreshAll();
+};
+$("dcancel").onclick = function(){ S.editing = null; $("dlg").style.display = "none"; };
+$("fsBtn").onclick = function(){ fsNav(""); };
+$("impBtn").onclick = function(){ openImport(); };
+
+async function unlinkedSessions(){
+  var arr = await api("/session");
+  var linked = {};
+  for (var k in S.tasks) if (S.tasks[k].sessionID) linked[S.tasks[k].sessionID] = 1;
+  var out = [];
+  for (var i=0;i<(arr||[]).length;i++) if (!linked[arr[i].id] && !isWorkerSession(arr[i])) out.push(arr[i]);
+  out.sort(function(a,b){ return ((b.time&&b.time.updated)||0) - ((a.time&&a.time.updated)||0); });
+  return out;
+}
+function importStageFor(s){
+  if (activityOf(s.id, s) === "run") return "exec";
+  var upd = (s.time && s.time.updated) || 0;
+  return (upd > Date.now() - 48*3600*1000) ? "review" : "done";
+}
+async function importSession(s){
+  var dir = (s.directory || "").split(/[\\/]/).pop();
+  var t = await tApi("POST", { title: (s.title || "会话 " + s.id.slice(4,12)) + (dir ? " @" + dir : ""), desc: "" });
+  await tApi("PATCH", { sessionID: s.id, stage: importStageFor(s) }, t.id);
+  return t;
+}
+async function openImport(){
+  $("idlg").style.display = "flex";
+  $("ilist").innerHTML = '<div class="empty">加载中…</div>';
+  try { S.statuses = (await api("/session/status")) || {}; } catch(e){}
+  var list = await unlinkedSessions();
+  if (!list.length) { $("ilist").innerHTML = '<div class="empty">没有未关联的会话</div>'; return; }
+  var html = "";
+  for (var i=0;i<Math.min(list.length, 60);i++){
+    var s = list[i];
+    var st = stOf(s.id);
+    var stTxt = st === "busy" ? "●RUN" : "○IDLE";
+    var dir = (s.directory || "").split(/[\\/]/).pop();
+    html += '<div class="irow" data-sid="'+s.id+'"><div class="it">'+esc(s.title || s.id.slice(0,16))+'</div><div class="im">'+fmtTime(s.time && s.time.updated)+' '+esc(dir||"~")+' '+stTxt+'</div><button class="go">导入</button></div>';
+  }
+  $("ilist").innerHTML = html;
+  var rows = document.querySelectorAll(".irow");
+  for (i=0;i<rows.length;i++) rows[i].querySelector(".go").onclick = async function(){
+    var sid = this.closest(".irow").getAttribute("data-sid");
+    this.textContent = "…";
+    var s = list.find(function(x){ return x.id === sid; });
+    if (s) await importSession(s);
+    this.closest(".irow").remove();
+    refreshAll();
+  };
+}
+$("iall").onclick = async function(){
+  var list = await unlinkedSessions();
+  for (var i=0;i<list.length;i++) await importSession(list[i]);
+  $("idlg").style.display = "none";
+  refreshAll();
+  toast("已导入 " + list.length + " 个会话");
+};
+$("iclose").onclick = function(){ $("idlg").style.display = "none"; };
+
+var miniSig = "";
+async function openMini(sid){
+  S.miniSid = sid;
+  var t = S.curTask;
+  var role = "";
+  if (t) { var ws = t.workers || []; for (var i=0;i<ws.length;i++) if (ws[i].sessionID === sid) role = ws[i].role; }
+  $("mwtitle").textContent = "◈ " + (role || (S.sessions[sid] && S.sessions[sid].title) || sid.slice(4,14));
+  $("mwin").style.display = "flex";
+  $("mwb").innerHTML = '<div class="empty">加载中…</div>';
+  await refreshMini(true);
+}
+async function refreshMini(force){
+  if (!S.miniSid) return;
+  try {
+    var msgs = (await api("/session/" + S.miniSid + "/message?limit=100")) || [];
+    var sig = msgs.length + ":" + (msgs.length ? ((msgs[msgs.length-1].parts||[]).length) + ":" + ((msgs[msgs.length-1].info||{}).id||"") + ":" + JSON.stringify((msgs[msgs.length-1].parts||[]).map(function(p){ return p.type==="tool" ? ((p.state||{}).status||"")+(((p.state||{}).output||"").length) : ((p.text||"").length); })) : "");
+    if (!force && sig === miniSig) return;
+    miniSig = sig;
+    var act = activityOf(S.miniSid);
+    $("mwdot").style.display = act === "run" ? "" : "none";
+    var html = "";
+    for (var i=0;i<msgs.length;i++){
+      var m = msgs[i], info = m.info || {};
+      var parts = m.parts || [];
+      var lastTool = -1;
+      for (var j=0;j<parts.length;j++) if (parts[j].type === "tool") lastTool = j;
+      var tx = [], tools = [];
+      for (j=0;j<parts.length;j++){
+        var p = parts[j];
+        if (p.type === "text" && p.text) { if (j > lastTool) tx.push(p.text); }
+        else if (p.type === "tool") tools.push(p);
+      }
+      if (!tx.length && !tools.length) continue;
+      html += '<div class="msg '+(info.role === "user" ? "user" : "assistant")+'"><div class="who">'+(info.role === "user" ? "OPERATOR" : "AGENT")+' · '+fmtTime(info.time && info.time.created)+'</div>'+mdRender(tx.join("\n\n"))+'</div>';
+      for (j=0;j<tools.length;j++){
+        var tt = tools[j], stt = (tt.state || {}).status || "pending";
+        var ttl = (tt.state && (tt.state.title || tt.state.name)) || "";
+        html += '<div class="sub '+(stt==="running"?"running":"")+'"><div class="t1"><span>⚙</span><span class="tn">'+esc(tt.tool||"tool")+'</span><span class="tt">'+esc(ttl)+'</span><span class="ts '+stt+'">'+({completed:"OK",running:"RUN",pending:"WAIT",error:"ERR"}[stt]||stt)+'</span></div>'+(stt==="running"?('<pre style="margin:6px 0 0;background:var(--code-bg);border-radius:5px;padding:6px 8px;font-size:11px;max-height:110px;overflow:hidden;white-space:pre-wrap;word-break:break-all;color:#8fb8d8">'+esc(toolTail(tt))+'<span style="color:var(--cy)">▌</span></pre>'):"")+'</div>';
+      }
+    }
+    $("mwb").innerHTML = html || '<div class="empty">暂无消息</div>';
+    var msubs = $("mwb").querySelectorAll(".sub");
+    for (var ms2=0; ms2<msubs.length; ms2++) msubs[ms2].addEventListener("click", function(e2){
+      if (e2.target.tagName === "A") return;
+      this.classList.toggle("xopen");
+    });
+    $("mwb").scrollTop = $("mwb").scrollHeight;
+  } catch(e){}
+}
+$("mwclose").onclick = function(){ S.miniSid = null; $("mwin").style.display = "none"; };
+(function(){
+  var mw = $("mwin"), mh = $("mwh");
+  var drag = null;
+  mh.addEventListener("mousedown", function(e){ if (e.target.id === "mwclose") return; var r = mw.getBoundingClientRect(); drag = { dx: e.clientX - r.left, dy: e.clientY - r.top }; e.preventDefault(); });
+  document.addEventListener("mousemove", function(e){ if (!drag) return; mw.style.left = (e.clientX - drag.dx) + "px"; mw.style.top = (e.clientY - drag.dy) + "px"; mw.style.right = "auto"; mw.style.bottom = "auto"; });
+  document.addEventListener("mouseup", function(){ drag = null; });
+  mh.addEventListener("touchstart", function(e){ if (e.target.id === "mwclose") return; var t0 = e.touches[0]; var r = mw.getBoundingClientRect(); drag = { dx: t0.clientX - r.left, dy: t0.clientY - r.top }; }, {passive:true});
+  document.addEventListener("touchmove", function(e){ if (!drag) return; var t1 = e.touches[0]; mw.style.left = (t1.clientX - drag.dx) + "px"; mw.style.top = (t1.clientY - drag.dy) + "px"; mw.style.right = "auto"; mw.style.bottom = "auto"; }, {passive:true});
+  document.addEventListener("touchend", function(){ drag = null; });
+})();
+
+$("ovfork").onclick = async function(){
+  if (!S.curTask || !S.curTask.sessionID) return;
+  var t = S.curTask;
+  try {
+    var forked = await api("/session/" + t.sessionID + "/fork", { method: "POST", body: JSON.stringify({}) });
+    if (!forked || !forked.id) throw new Error("分叉失败");
+    var nt = await tApi("POST", { title: t.title + " ⑂分叉", desc: t.desc || "", mode: t.mode || "single" });
+    await tApi("PATCH", { sessionID: forked.id }, nt.id);
+    S.tasks[nt.id] = nt;
+    renderBoard._sig = "";
+    openDetail(nt.id);
+    toast("已分叉为新任务");
+  } catch(e){ toast("分叉失败: " + (e.message||e)); }
+};
+
+$("ovclose").onclick = function(){ closeDetail(); };
+$("ovmulti").onclick = async function(){
+  if (!S.curTask) return;
+  var t = S.curTask;
+  if (!confirm("转为多AGENT协同？将并行拉起分工智能体（现有会话的成果作为上下文带给各分工）。")) return;
+  try {
+    if (t.sessionID && activityOf(t.sessionID) === "run") {
+      await api("/session/" + t.sessionID + "/abort", { method: "POST" });
+    }
+    var ctx = t.sessionID ? await lastAssistantText(t.sessionID) : "";
+    await tApi("PATCH", { mode: "multi" }, t.id);
+    t.mode = "multi";
+    await spawnWorkers(t, ctx);
+    renderBoard._sig = "";
+    refreshAll();
+    toast("已转协同模式，分工已启动");
+  } catch(e){ toast("转换失败: " + (e.message||e)); }
+};
+
+$("ovedit").onclick = function(){
+  if (!S.curTask) return;
+  S.editing = S.curTask.id;
+  $("dtitle").value = S.curTask.title || "";
+  $("ddesc").value = S.curTask.desc || "";
+  $("dmulti").checked = (S.curTask.mode === "multi");
+  if (S.curTask.wn) $("dcount").value = String(S.curTask.wn);
+  $("acced").value = S.curTask.acc ? "custom" : "none";
+  $("accjson").value = S.curTask.acc ? JSON.stringify(S.curTask.acc, null, 1) : "";
+  $("dlg").style.display = "flex";
+  $("dtitle").focus();
+};
+$("ovdel").onclick = async function(){
+  if (S.curTask) {
+    if (!confirm("删除任务「"+S.curTask.title+"」？（opencode 会话保留）")) return;
+    await tApi("DELETE", null, S.curTask.id);
+    closeDetail();
+  }
+};
+$("send").onclick = async function(){
+  var v = $("inp").value.trim();
+  if (!v || !S.curTask) return;
+  if (S.viewSid) { toast("正在查看分工视角，切回主线再发送"); return; }
+  $("inp").value = "";
+  try {
+    if (S.curTask.mode === "multi" && !S.curTask.sessionID) {
+      toast("分工执行中，汇总会话生成后再对话");
+      return;
+    }    var sid = await ensureSession(S.curTask);
+    if (S.curTask.mode !== "multi" && activityOf(sid) === "run") {
+      if (!S.queue[sid]) S.queue[sid] = [];
+      S.queue[sid].push(v);
+      toast("已排队 第" + S.queue[sid].length + "条（当前回合结束后自动发出）");
+      refreshDetail(false);
+    } else {
+      await sendMsg(sid, v, sendOpts());
+      toast("已直接发送（会话空闲）");
+    }
+    setTimeout(markDirty, 600);
+  } catch(e){ toast("发送失败"); }
+};
+$("newagent").onclick = async function(){
+  var v = $("inp").value.trim();
+  if (!v || !S.curTask) { toast("先把新指令写在输入框，再点＋Agent"); return; }
+  var t = S.curTask;
+  S.pendingAgentText = v;
+  $("adesc").innerHTML = "将为这条指令新开一个<b style=\"color:var(--cy)\">并行分支智能体</b>：<br><span style=\"color:var(--tx)\">「" + esc(v.slice(0, 120)) + (v.length > 120 ? "…" : "") + "」</span><br><br>原会话<b>不受影响、继续运行</b>；分支会携带当前进展独立执行这条指令，完成后自动在主线<b>汇总合并</b>。分支可在「◈ 分工」页实时观察。";
+  $("adlg").style.display = "flex";
+};
+$("acancel").onclick = function(){ $("adlg").style.display = "none"; S.pendingAgentText = null; };
+$("aok").onclick = async function(){
+  $("adlg").style.display = "none";
+  var v = S.pendingAgentText;
+  S.pendingAgentText = null;
+  if (!v || !S.curTask) return;
+  $("inp").value = "";
+  var t = S.curTask;
+  var role = "分支·" + v.replace(/\s+/g, "").slice(0, 10);
+  try {
+    await ensureCoordinator(t);
+    var ctx = await compactContext(t.sessionID);
+    var ctxLabel = ctx.kind === "full" ? "完整会话上下文" : (ctx.kind === "compressed" ? "压缩交接摘要（由全部历史压缩）" : "进展摘要");
+    var oldCtx = ctx.text;
+    var s = await api("/session", { method: "POST", body: JSON.stringify({ title: t.title + " #" + role, parentID: t.sessionID }) });
+    S.sessions[s.id] = s;
+    await sendMsg(s.id, "【并行分支智能体】你负责独立执行用户的一条新指令，其他智能体在并行处理主线任务。\n任务：" + t.title + (t.desc ? "\n描述：" + t.desc : "") + (oldCtx ? "\n\n" + ctxLabel + "：\n" + oldCtx : "") + "\n\n你的指令：\n" + v + "\n\n完成后输出要点式结果报告，供主线汇总合并。");
+    t.workers = (t.workers || []).concat([{ sessionID: s.id, role: role }]);
+    var patch = { workers: t.workers };
+    if (t.merged) { t.merged = false; patch.merged = false; }
+    await tApi("PATCH", patch, t.id);
+    S.curTab = "agents";
+    renderBoard._sig = "";
+    refreshAll();
+    toast("分支智能体已启动，见「◈ 分工」页");
+  } catch(e){ toast("失败: " + (e.message || e)); }
+};
+$("adlg").addEventListener("click", function(e){ if (e.target === $("adlg")) $("acancel").click(); });
+
+$("inp").addEventListener("keydown", function(e){
+  if (e.key === "Enter" && !e.shiftKey && window.matchMedia && window.matchMedia("(pointer:fine)").matches) {
+    e.preventDefault();
+    $("send").click();
+  }
+});
+$("abort").onclick = doAbort;
+$("ovabort").onclick = doAbort;
+async function doAbort(){
+  if (!S.curTask || !S.curTask.sessionID) return;
+  toast("正在多通道发送中止信号…");
+  var hits = await abortAnywhere(S.curTask.sessionID);
+  toast(hits > 0 ? "已中止（命中 " + hits + " 个实例）" : "中止失败：目标会话可能不在任何已知实例上");
+  markDirty();
+}
+
+async function loadBackends(){
+  try {
+    var r = await fetch("/backends");
+    var bs = await r.json();
+    var sel = $("bk");
+    sel.innerHTML = "";
+    for (var i=0;i<bs.length;i++){
+      var o = document.createElement("option");
+      o.value = bs[i].port;
+      o.textContent = bs[i].name + ":" + bs[i].port;
+      sel.appendChild(o);
+    }
+    if (!bs.find(function(b){ return String(b.port) === S.backend; })) S.backend = String(bs[0].port);
+    sel.value = S.backend;
+  } catch(e){}
+  try {
+    var r2 = await fetch("/backends");
+    S.backends = await r2.json();
+  } catch(e2){}
+}
+$("bk").onchange = function(){
+  S.backend = this.value;
+  localStorage.setItem("oc_backend", S.backend);
+  S.perms = {}; S.questions = {}; S.curTask = null; S.statuses = {};
+  closeDetail();
+  sseStart();
+  refreshAll();
+};
+
+async function abortAnywhere(sid){
+  if (!sid) return 0;
+  var ports = S.backends.map(function(b){ return b.port; }).slice();
+  try {
+    var r = await fetch("/ocinstances");
+    var ins = await r.json();
+    for (var i=0;i<(ins.ports||[]).length;i++) if (ports.indexOf(ins.ports[i]) < 0) ports.push(ins.ports[i]);
+  } catch(e){}
+  var hits = 0;
+  for (i=0;i<ports.length;i++) {
+    try {
+      var rr = await fetch("/api/session/" + sid + "/abort", { method: "POST", headers: { "x-pilot-backend": String(ports[i]) } });
+      if (rr.ok || rr.status === 200 || rr.status === 204) hits++;
+    } catch(e2){}
+  }
+  return hits;
+}
+
+async function prefetchTodos(){
+  for (var sid in S.sessions) {
+    if (!S.sessions[sid]._todo) {
+      (function(id){
+        api("/session/" + id + "/todo").then(function(t){ if (S.sessions[id]) S.sessions[id]._todo = t || []; });
+      })(sid);
+    }
+  }
+}
+async function prefetchLiveTools(){
+  for (var sid in S.sessions) {
+    if (activityOf(sid) === "run") {
+      (function(id){
+        api("/session/" + id + "/message?limit=2").then(function(msgs){
+          var tools = [];
+          var outLen = 0;
+          for (var i=0;i<(msgs||[]).length;i++) {
+            var parts = msgs[i].parts || [];
+            for (var j=0;j<parts.length;j++) {
+              var p = parts[j];
+              if (p.type === "tool") {
+                var st = (p.state || {}).status || "";
+                if (st === "running" || st === "pending") {
+                  var ttl = (p.state && (p.state.title || p.state.name)) || "";
+                  if (!ttl) { try { ttl = p.state && p.state.input ? JSON.stringify(p.state.input).slice(0,70) : ""; } catch(e){} }
+                  tools.push({ tool: p.tool || "tool", title: ttl });
+                  outLen += ((p.state && p.state.output) || "").length;
+                }
+              }
+            }
+          }
+          S.liveTools[id] = tools;
+          if (!tools.length) delete S.liveTools[id];
+          if (tools.length) {
+            if (S.toolLen[id] === outLen) { if (!S.stuckSince[id]) S.stuckSince[id] = Date.now(); }
+            else S.stuckSince[id] = 0;
+            S.toolLen[id] = outLen;
+          } else {
+            delete S.toolLen[id];
+            delete S.stuckSince[id];
+          }
+        }).catch(function(){ delete S.liveTools[id]; });
+      })(sid);
+    } else if (S.liveTools[sid]) delete S.liveTools[sid];
+  }
+}
+
+(function(){
+  if (localStorage.getItem("oc_theme_boot") !== "1.3.1") {
+    localStorage.setItem("oc_theme", "orange");
+    localStorage.setItem("oc_theme_boot", "1.3.1");
+  }
+})();
+applyTheme(localStorage.getItem("oc_theme") || "orange");
+S.fastMs = parseInt(localStorage.getItem("oc_fastms") || "2500", 10);
+loadBackends();
+loadSelectorData();
+loadAgentsList();
+sseStart();
+refreshAll();
+fastLoop();
+(function(){
+  var m = location.hash.match(/^#t=([a-z0-9]+)/i);
+  if (m) {
+    var tryOpen = setInterval(function(){
+      if (S.tasks[m[1]]) { clearInterval(tryOpen); openDetail(m[1]); }
+      else if (S._loadedOnce) clearInterval(tryOpen);
+    }, 400);
+    setTimeout(function(){ clearInterval(tryOpen); }, 15000);
+  }
+})();
+setInterval(function(){ markDirty(); prefetchTodos(); prefetchLiveTools(); }, 12000);
+setInterval(function(){ markDirty(); prefetchTodos(); prefetchLiveTools(); }, 12000);
+async function fastLoop(){
+  while (true){
+    await new Promise(function(r){ setTimeout(r, S.fastMs || 2500); });
+    try {
+      if (Date.now() - S.lastSseOk > 25000) {
+        dbgLog("SSE 看门狗触发重连");
+        sseStart();
+      }
+      for (var sid in S.queue) {
+        if (S.queue[sid] && S.queue[sid].length && activityOf(sid) !== "run") {
+          var txt = S.queue[sid].shift();
+          try { await sendMsg(sid, txt); toast("队列消息已发出"); markDirty(); } catch(e){}
+        }
+      }
+      if ((S.curTask || S.fsMode) && $("ovl").classList.contains("open")) refreshDetail(false);
+      prefetchLiveTools();
+      if (S.miniSid) refreshMini(false);
+      if (S.curTask && S.curTask.mode === "multi") fetchWorkerInfos();
+      checkMultiTasks();
+    } catch(e){}
+  }
+}
+document.addEventListener("visibilitychange", function(){ if (!document.hidden) { S.lastSseOk = 0; refreshAll(); prefetchTodos(); prefetchLiveTools(); } });
+window.addEventListener("online", function(){ S.lastSseOk = 0; sseStart(); refreshAll(); });
+
+$("dlg").addEventListener("click", function(e){ if (e.target === $("dlg")) $("dcancel").click(); });
+$("idlg").addEventListener("click", function(e){ if (e.target === $("idlg")) $("iclose").click(); });
+$("fdlg").addEventListener("click", function(e){ if (e.target === $("fdlg")) $("fcancel").click(); });
+document.addEventListener("keydown", function(e){
+  if (e.key !== "Escape") return;
+  if ($("dlg").style.display === "flex") { $("dcancel").click(); return; }
+  if ($("fdlg").style.display === "flex") { $("fcancel").click(); return; }
+  if ($("idlg").style.display === "flex") { $("iclose").click(); return; }
+  if ($("adlg").style.display === "flex") { $("acancel").click(); return; }
+  if ($("mwin").style.display === "flex") { $("mwclose").click(); return; }
+  if ($("ovl").classList.contains("open")) { closeDetail(); return; }
+});
+</script>
+</body>
+</html>

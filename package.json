@@ -1,0 +1,19 @@
+{
+  "name": "oc-pilot",
+  "version": "1.3.4",
+  "description": "Kanban harness for opencode: turn AI coding sessions into a supervised task pipeline (todo/plan/exec/review/done) with multi-agent collaboration, evidence-based acceptance engine and phone remote control.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "demo": "cross-env-not-needed PILOT_TASKS_FILE=demo/tasks.json PORT=4098 node server.js",
+    "demo:win": "set PILOT_TASKS_FILE=demo\\tasks.json&& set PORT=4098&& node server.js",
+    "acc": "node server.js"
+  },
+  "keywords": ["opencode", "ai-agents", "kanban", "harness", "multi-agent", "remote-control"],
+  "author": "L1Star03",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {}
+}
