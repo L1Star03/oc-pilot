@@ -290,6 +290,9 @@ main{flex:1;overflow:hidden;display:flex}
 .scur{color:var(--cy);animation:pulse 1s infinite;margin-left:2px}
 .rdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--cy);margin-right:7px;animation:pulse 1s infinite}
 .lastmsg{margin-top:5px;font-size:10.5px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#statbar{padding:4px 14px;font-size:10.5px;color:var(--mut);letter-spacing:.5px;background:var(--bar-bg);border-top:1px solid var(--ln);white-space:nowrap;overflow-x:auto;scrollbar-width:none}
+#statbar::-webkit-scrollbar{display:none}
+#statbar b{color:var(--dim);font-weight:600}
 *::-webkit-scrollbar{width:8px;height:8px}
 *::-webkit-scrollbar-track{background:transparent}
 *::-webkit-scrollbar-thumb{background:var(--ln2);border-radius:4px}
@@ -379,7 +382,7 @@ main{flex:1;overflow:hidden;display:flex}
 <body>
 <div id="app">
   <header>
-    <div class="brand">◤ OC-PILOT <small id="ver">// v1.4.7</small></div>
+    <div class="brand">◤ OC-PILOT <small id="ver">// v1.4.9</small></div>
     <div id="dot"></div>
     <select id="bk"></select>
     <span style="flex:1"></span>
@@ -399,7 +402,6 @@ main{flex:1;overflow:hidden;display:flex}
         <div id="ovtitle"></div>
         <button class="hbtn" id="thm2Btn">◐ 主题</button>
         <button class="hbtn" id="ovset" style="display:none">⚙ <span id="ovsetm">模型设置</span></button>
-        <button class="hbtn" id="newagent" style="background:var(--pri-bg);color:var(--pri-fg);font-weight:700">＋Agent</button>
         <button class="hbtn" id="ovfork" style="display:none">⑂ 分叉</button>
         <button class="hbtn" id="ovabort" style="display:none;border-color:var(--er);color:var(--er)">■ 中断</button>
         <button class="hbtn" id="ovmulti" style="display:none;border-color:var(--ok);color:var(--ok)">⚡转协同</button>
@@ -409,9 +411,11 @@ main{flex:1;overflow:hidden;display:flex}
       <div id="ovbody"></div>
       <div id="limitnote" style="display:none;margin:0 12px 6px;padding:8px 10px;border:1px solid var(--wn);border-radius:4px;font-size:12px;color:var(--tx);background:var(--card-bg);line-height:1.5"></div>
       <div id="runbar" style="display:none;padding:6px 14px;font-size:11.5px;color:var(--cy);letter-spacing:1px;background:var(--bar-bg);border-top:1px solid var(--ln)"></div>
+      <div id="statbar"></div>
       <div id="ovfoot">
         <textarea id="inp" rows="1" placeholder="发送指令…"></textarea>
         <button id="send">发送</button>
+        <button id="newagent" style="background:var(--pri-bg);color:var(--pri-fg);font-weight:700;border-radius:3px;padding:0 10px;font-size:12.5px;white-space:nowrap">＋Agent</button>
         <button id="abort" style="border-color:var(--er);color:var(--er);border-radius:8px;padding:0 10px;font-size:12.5px;white-space:nowrap;display:none">■ 中断</button>
       </div>
     </div></div>
@@ -492,7 +496,7 @@ main{flex:1;overflow:hidden;display:flex}
   <div id="mwb"></div>
 </div>
 <script>
-var S = { backend: localStorage.getItem("oc_backend") || "4096", backends: [], tasks: {}, statuses: {}, perms: {}, questions: {}, sessions: {}, curTask: null, curTab: "chat", msgs: [], todos: [], diffs: [], fsMode: false, prevUpdated: {}, liveUntil: {}, runStart: {}, lastMsg: {}, editing: null, queue: {}, liveTools: {}, workerInfo: {}, toolLen: {}, stuckSince: {}, miniSid: null, cardSubOpen: {}, dbg: [], limitWarned: {}, wasBusy: {}, resumed: {}, woken: {}, roleMig: {} };
+var S = { backend: localStorage.getItem("oc_backend") || "4096", backends: [], tasks: {}, statuses: {}, perms: {}, questions: {}, sessions: {}, curTask: null, curTab: "chat", msgs: [], todos: [], diffs: [], fsMode: false, prevUpdated: {}, liveUntil: {}, runStart: {}, lastMsg: {}, cardUsage: {}, lastUsage: {}, editing: null, queue: {}, liveTools: {}, workerInfo: {}, toolLen: {}, stuckSince: {}, miniSid: null, cardSubOpen: {}, dbg: [], limitWarned: {}, wasBusy: {}, resumed: {}, woken: {}, roleMig: {} };
 function dbgLog(msg){
   S.dbg.unshift(new Date().toTimeString().slice(0,8) + " " + msg);
   if (S.dbg.length > 6) S.dbg.pop();
@@ -544,7 +548,7 @@ async function prefetchLastMsg(){
   for (var id in S.tasks) {
     var t = S.tasks[id];
     if (!t.sessionID) continue;
-    if (activityOf(t.sessionID) !== "run") { if (S.lastMsg[t.sessionID]) delete S.lastMsg[t.sessionID]; continue; }
+    if (activityOf(t.sessionID) !== "run") { if (S.lastMsg[t.sessionID]) delete S.lastMsg[t.sessionID]; if (t.sessionID) continue; }
     (function(sid){
       api("/session/" + sid + "/message?limit=1").then(function(ms){
         if (!ms || !ms.length) return;
@@ -558,6 +562,16 @@ async function prefetchLastMsg(){
         }
         var snippet = String(lastTool || txt || "").replace(/\s+/g, " ").slice(0, 80);
         if (snippet) S.lastMsg[sid] = snippet;
+        var info2 = m.info || {};
+        if (info2.role === "assistant" && info2.tokens) {
+          var nu = (info2.tokens.input || 0) + ((info2.tokens.cache && info2.tokens.cache.read) || 0);
+          if (nu > 0) {
+            var mid2 = info2.providerID && info2.modelID ? info2.providerID + "/" + info2.modelID : "";
+            var lim2 = 0;
+            for (var mi2=0; mi2<modelList.length; mi2++) if (modelList[mi2].id === mid2) { lim2 = modelList[mi2].ctx || 0; break; }
+            S.cardUsage[sid] = { ctx: nu, limit: lim2, pct: lim2 ? Math.min(100, Math.round(nu / lim2 * 100)) : 0 };
+          }
+        }
       }).catch(function(){});
     })(t.sessionID);
   }
@@ -966,7 +980,7 @@ function isWorkerSession(s){
   return / #W\d| #MERGE/.test(s.title || "");
 }
 function renderBoard(){
-  var sig = JSON.stringify(S.statuses) + "#" + Object.keys(S.tasks).map(function(k){ var t=S.tasks[k]; return k+t.stage+t.updated+(t.sessionID||"")+(t.sessionID?activityOf(t.sessionID):"")+((t.workers&&t.workers.length)||0)+(t.merged?1:0); }).sort().join("|") + "#" + Object.keys(S.sessions).map(function(k){ var s=S.sessions[k]; return k+((s.time&&s.time.updated)||0)+((s._todo&&s._todo.length)||0)+(s.parentID||""); }).sort().join("|") + "#" + JSON.stringify(S.liveTools) + "#" + JSON.stringify(S.cardSubOpen) + "#" + JSON.stringify(S.lastMsg) + "#" + Object.keys(S.runStart).map(function(k){ return k + Math.floor((Date.now() - S.runStart[k]) / 10000); }).join(",");
+  var sig = JSON.stringify(S.statuses) + "#" + Object.keys(S.tasks).map(function(k){ var t=S.tasks[k]; return k+t.stage+t.updated+(t.sessionID||"")+(t.sessionID?activityOf(t.sessionID):"")+((t.workers&&t.workers.length)||0)+(t.merged?1:0); }).sort().join("|") + "#" + Object.keys(S.sessions).map(function(k){ var s=S.sessions[k]; return k+((s.time&&s.time.updated)||0)+((s._todo&&s._todo.length)||0)+(s.parentID||""); }).sort().join("|") + "#" + JSON.stringify(S.liveTools) + "#" + JSON.stringify(S.cardSubOpen) + "#" + JSON.stringify(S.lastMsg) + "#" + JSON.stringify(S.cardUsage) + "#" + Object.keys(S.runStart).map(function(k){ return k + Math.floor((Date.now() - S.runStart[k]) / 10000); }).join(",");
   if (sig === renderBoard._sig) return;
   renderBoard._sig = sig;
   var b = $("board");
@@ -1031,9 +1045,14 @@ function cardHtml(t){
   if (t.sessionID && S.queue[t.sessionID] && S.queue[t.sessionID].length) chip += '<span class="chip rec">⧗' + S.queue[t.sessionID].length + '</span>';
   var prog = "";
   var s = S.sessions[t.sessionID];
-  if (s && s._todo && s._todo.length) {
+  var cu = t.sessionID ? S.cardUsage[t.sessionID] : null;
+  if (cu && cu.ctx) {
+    var cw = cu.pct || 0;
+    var ccolor = cw >= 85 ? "var(--er)" : (cw >= 60 ? "var(--wn)" : "");
+    prog = '<div class="bar"><i style="width:'+Math.max(2,cw)+'%'+(ccolor?';background:'+ccolor:'')+'"></i></div><div class="tmeta">上下文 '+fmtTokens(cu.ctx)+(cu.limit?'/'+fmtTokens(cu.limit)+' ('+cw+'%)':'')+'</div>';
+  } else if (s && s._todo && s._todo.length) {
     var done = s._todo.filter(function(x){ return x.status === "completed"; }).length;
-    prog = '<div class="bar"><i style="width:'+Math.round(done/s._todo.length*100)+'%"></i></div><div class="tmeta">TODO '+done+'/'+s._todo.length+'</div>';
+    prog = '<div class="tmeta">TODO '+done+'/'+s._todo.length+'</div>';
   }
   var btns = "";
   var flow = FLOW[t.stage] || FLOW.todo;
@@ -1209,7 +1228,11 @@ async function loadSelectorData(){
       var pid = p.id || p.name;
       if (Object.keys(connected).length && !connected[pid]) continue;
       if (!p.models) continue;
-      for (var k2 in p.models) modelList.push({ id: pid + "/" + k2, provider: pid, model: k2 });
+      for (var k2 in p.models) {
+        var mv = p.models[k2];
+        var lim = (mv && mv.limit) || {};
+        modelList.push({ id: pid + "/" + k2, provider: pid, model: k2, ctx: lim.context || 0, out: lim.output || 0 });
+      }
     }
   } catch(e2){}
   var stored = localStorage.getItem("oc_model") || "";
@@ -2219,8 +2242,8 @@ async function refreshDetail(full){
   var t = S.curTask;
   if (S.curTab !== refreshDetail._lastTab) { refreshDetail._sig = ""; dbgLog("渲染:" + S.curTab); }
   refreshDetail._lastTab = S.curTab;
-  if (S.curTab === "graph") { renderGraphView(); return; }
-  if (S.curTab === "acc") { renderAccView(); return; }
+  if (S.curTab === "graph") { renderGraphView(); renderStatBar(); return; }
+  if (S.curTab === "acc") { renderAccView(); renderStatBar(); return; }
   if (S.curTab === "agents") {
     renderAgentsOverview();
     $("abort").style.display = t.sessionID ? "" : "none";
@@ -2228,6 +2251,7 @@ async function refreshDetail(full){
     $("ovfork").style.display = t.sessionID ? "" : "none";
     $("ovset").style.display = t.sessionID ? "" : "none";
     $("ovmulti").style.display = (t.mode !== "multi" && t.stage === "exec") ? "" : "none";
+    renderStatBar();
     return;
   }
   var sid = S.viewSid || t.sessionID;
@@ -2246,6 +2270,7 @@ async function refreshDetail(full){
     var dv = document.getElementById("dview");
     if (!dv) return;
     var sc = $("ovbody");
+    captureUsage(sid, S.msgs);
     if (S.msgs.length) checkLimitWarn(S.msgs[S.msgs.length - 1]);
     var cSig = chatSig();
     var skipRender = !full && (cSig === refreshDetail._sig || hasTextSelection());
@@ -2346,7 +2371,7 @@ function renderMessageHtml(m, isLast, running){
     toolHtml += '<div class="sub '+(isAgent?"agent ":"")+(stt==="running"?"running":"")+'" style="cursor:pointer"><div class="t1"><span>'+(isAgent?"◈":"⚙")+'</span><span class="tn">'+esc(t.tool||"tool")+'</span><span class="tt">'+esc(ttl||inp)+'</span><span class="ts '+stt+'">'+({completed:"OK",running:"RUN",pending:"WAIT",error:"ERR"}[stt]||stt)+'</span></div>'+(stt==="running"&&toolTail(t)?('<pre style="margin:6px 0 0;background:var(--code-bg);border-radius:5px;padding:6px 8px;font-size:11px;max-height:110px;overflow:hidden;white-space:pre-wrap;word-break:break-all;color:#8fb8d8">'+esc(toolTail(t))+'<span style="color:var(--cy)">▌</span></pre>'):"")+(fullOut?'<pre class="fullout">'+esc(fullOut)+'</pre>':"")+'</div>';
   }
   var cur = (isLast && running && info.role === "assistant") ? '<span class="scur">▌</span>' : "";
-  return '<div class="msg '+(info.role === "user" ? "user" : "assistant")+'" data-mid="'+esc(info.id||"")+'"><div class="who">'+(info.role === "user" ? "OPERATOR" : "AGENT")+' · '+fmtTime(info.time && info.time.created)+(modelShort(info.model)?' · <span style="color:var(--mut)">'+esc(modelShort(info.model))+'</span>':"")+(info.role !== "user" && info.id ? ' <button class="rvbtn" data-revert="'+esc(info.id)+'" title="回滚到此消息之前">↩</button>' : "")+'</div>' +
+  return '<div class="msg '+(info.role === "user" ? "user" : "assistant")+'" data-mid="'+esc(info.id||"")+'"><div class="who">'+(info.role === "user" ? "OPERATOR" : "AGENT")+' · '+fmtTime(info.time && info.time.created)+(modelShort(info.model || (info.providerID ? { providerID: info.providerID, modelID: info.modelID } : null))?' · <span style="color:var(--mut)">'+esc(modelShort(info.model || (info.providerID ? { providerID: info.providerID, modelID: info.modelID } : null)))+'</span>':"")+(info.role !== "user" && info.id ? ' <button class="rvbtn" data-revert="'+esc(info.id)+'" title="回滚到此消息之前">↩</button>' : "")+'</div>' +
     (intro ? '<div class="mseg">'+intro+'</div>' : "") +
     thinkHtml + toolHtml +
     (finalTxt ? '<div class="mseg final">'+mdRender(finalTxt)+cur+'</div>' : (cur ? '<div class="mseg">'+cur+'</div>' : "")) +
@@ -2373,6 +2398,7 @@ async function streamTick(){
     for (var i=S.msgs.length-1;i>=0;i--) if (S.msgs[i].info && S.msgs[i].info.id === lastId) { localIdx = i; break; }
     if (localIdx < 0) { refreshDetail._sig = ""; refreshDetail(false); return; }
     S.msgs[localIdx] = last;
+    captureUsage(sid, msgs);
     checkLimitWarn(last);
     var el = document.querySelector('#dview [data-mid="'+lastId+'"]');
     if (!el) { refreshDetail._sig = ""; refreshDetail(false); return; }
@@ -2391,13 +2417,84 @@ async function streamTick(){
 }
 
 var S_runStart = S.runStart;
+function captureUsage(sid, msgs){
+  if (!sid || !msgs) return;
+  for (var i = msgs.length - 1; i >= 0; i--) {
+    var info = msgs[i].info || {};
+    if (info.role !== "assistant" || !info.tokens) continue;
+    var newIn = info.tokens.input || 0;
+    var cr = (info.tokens.cache && info.tokens.cache.read) || 0;
+    var ctx = newIn + cr;
+    if (ctx <= 0) continue;
+    S.lastUsage[sid] = {
+      ctx: ctx,
+      input: newIn,
+      output: info.tokens.output || 0,
+      reasoning: info.tokens.reasoning || 0,
+      cacheRead: cr,
+      model: info.model || (info.providerID ? { providerID: info.providerID, modelID: info.modelID } : null),
+      cost: info.cost || 0
+    };
+    return;
+  }
+}
+function fmtTokens(n2){
+  if (!n2) return "0";
+  if (n2 >= 1000000) return (n2/1000000).toFixed(1) + "M";
+  if (n2 >= 1000) return (n2/1000).toFixed(1) + "k";
+  return String(n2);
+}
+function renderStatBar(){
+  var bar = $("statbar");
+  if (!bar) return;
+  var t = S.curTask;
+  if (!t || !$("ovl").classList.contains("open")) { bar.innerHTML = ""; return; }
+  var sid = S.viewSid || t.sessionID;
+  var se = sid ? S.sessions[sid] : null;
+  var model = "";
+  var modelId = "";
+  if (sid) {
+    for (var i=S.msgs.length-1;i>=0;i--) {
+      var im = S.msgs[i].info && S.msgs[i].info.model;
+      if (im && typeof im === "object") { model = (im.providerID ? im.providerID + "/" : "") + (im.modelID || im.model || ""); modelId = model; break; }
+      if (typeof im === "string" && im) { model = im; modelId = im; break; }
+      var pv = S.msgs[i].info && S.msgs[i].info.providerID;
+      var mv2 = S.msgs[i].info && S.msgs[i].info.modelID;
+      if (pv && mv2) { model = pv + "/" + mv2; modelId = model; break; }
+    }
+  }
+  if (!model) { var sel = localStorage.getItem("oc_model") || ""; if (sel) { model = sel; modelId = sel; } }
+  var effort = localStorage.getItem("oc_effort") || "";
+  var agent = localStorage.getItem("oc_agent") || "";
+  var parts = [];
+  parts.push("模型 <b>" + esc(model || "默认") + "</b>");
+  parts.push("强度 <b>" + esc(effort || "默认") + "</b>");
+  if (agent) parts.push("agent <b>" + esc(agent) + "</b>");
+  var lu = sid ? S.lastUsage[sid] : null;
+  if (lu && lu.ctx) {
+    var luModel = lu.model ? (typeof lu.model === "object" ? ((lu.model.providerID || "") + "/" + (lu.model.modelID || lu.model.model || "")) : String(lu.model)) : "";
+    if (luModel) parts[0] = "模型 <b>" + esc(luModel) + "</b>";
+    var meta2 = null;
+    for (var mi=0; mi<modelList.length; mi++) if (modelList[mi].id === (luModel || modelId)) { meta2 = modelList[mi]; break; }
+    var limCtx = (meta2 && meta2.ctx) || 0;
+    var pct = limCtx ? Math.min(100, Math.round(lu.ctx / limCtx * 100)) : 0;
+    parts.push("上下文 " + (limCtx ? ("<b>" + fmtTokens(lu.ctx) + "</b>/" + fmtTokens(limCtx) + " (" + pct + "%)") : ("<b>" + fmtTokens(lu.ctx) + "</b>")));
+    parts.push("本次 ↑" + fmtTokens(lu.input) + (lu.cacheRead ? "(缓存" + fmtTokens(lu.cacheRead) + ")" : "") + " ↓" + fmtTokens(lu.output) + (lu.reasoning ? " 思考" + fmtTokens(lu.reasoning) : ""));
+  }
+  var tk = se && se.tokens;
+  if (tk) parts.push("会话累计 ↑" + fmtTokens(tk.input || 0) + " ↓" + fmtTokens(tk.output || 0));
+  if (se && se.cost) parts.push("$" + (Math.round(se.cost * 100) / 100).toFixed(2));
+  bar.innerHTML = parts.join(' <span style="color:var(--ln2)">·</span> ');
+}
+
 function updateRunBar(){
+  renderStatBar();
   var bar = $("runbar");
   if (!bar) return;
   var t = S.curTask;
   var sid = t ? (S.viewSid || t.sessionID) : null;
   var running = sid ? activityOf(sid) === "run" : false;
-  if (!running || !$("ovl").classList.contains("open") || S.curTab !== "chat") { bar.style.display = "none"; return; }
+  if (!running || !$("ovl").classList.contains("open")) { bar.style.display = "none"; return; }
   if (!S_runStart[sid]) S_runStart[sid] = Date.now();
   var secs = Math.round((Date.now() - S_runStart[sid]) / 1000);
   var lu = (S.sessions[sid] && S.sessions[sid].time && S.sessions[sid].time.updated) || 0;
@@ -2997,7 +3094,7 @@ async function fastLoop(){
         sseStart();
       }
       for (var rsid in S_runStart) { if (activityOf(rsid) !== "run") delete S_runStart[rsid]; }
-      if ((S.curTask || S.fsMode) && S.curTab === "chat") updateRunBar();
+      if ((S.curTask || S.fsMode) && $("ovl").classList.contains("open")) updateRunBar();
       for (var sid in S.queue) {
         if (S.queue[sid] && S.queue[sid].length && activityOf(sid) !== "run") {
           var txt = S.queue[sid].shift();
