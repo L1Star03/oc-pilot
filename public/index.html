@@ -81,7 +81,7 @@ header .brand{font-weight:700;font-size:14px;color:var(--cy);letter-spacing:2px;
 header .brand small{color:var(--mut);font-weight:400;letter-spacing:1px;font-size:10px}
 #dot{width:8px;height:8px;border-radius:50%;background:var(--er);flex:0 0 auto}
 #dot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}
-#bk{background:transparent;color:var(--cy);border:1px solid var(--ln);border-radius:6px;padding:5px 4px;font-size:11px;max-width:120px}
+#bk{background:var(--inp-bg);color:var(--tx);border:1px solid var(--ln);border-radius:3px;padding:5px 6px;font-size:11px;max-width:130px}
 .hbtn{background:var(--btn-bg);color:var(--btn-fg);border-radius:3px;padding:6px 10px;font-size:11.5px;flex:0 0 auto}
 .hbtn.pri{background:var(--cyb);color:#04121f;border-color:var(--cyb);font-weight:700}
 #errbar{display:none;background:#3b1f24;border-bottom:1px solid var(--er);color:var(--er);padding:6px 12px;font-size:11px;flex:0 0 auto}
@@ -281,6 +281,11 @@ main{flex:1;overflow:hidden;display:flex}
 .acchist .hmeta{color:var(--mut);flex:0 0 auto;font-size:10.5px}
 .acchist .hout{color:var(--dim);word-break:break-all;max-height:60px;overflow:hidden}
 .accdot{letter-spacing:2px;font-size:10px}
+*::-webkit-scrollbar{width:8px;height:8px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:var(--ln2);border-radius:4px}
+*::-webkit-scrollbar-thumb:hover{background:var(--mut)}
+*{scrollbar-width:thin;scrollbar-color:var(--ln2) transparent}
 .gnode rect{fill:var(--card-bg);stroke:var(--ln2);stroke-width:1}
 .gnode.on rect{stroke:var(--cy)}
 .gnode{cursor:pointer}
@@ -358,7 +363,7 @@ main{flex:1;overflow:hidden;display:flex}
 <body>
 <div id="app">
   <header>
-    <div class="brand">◤ OC-PILOT <small id="ver">// v1.4.0</small></div>
+    <div class="brand">◤ OC-PILOT <small id="ver">// v1.4.1</small></div>
     <div id="dot"></div>
     <select id="bk"></select>
     <span style="flex:1"></span>
@@ -1871,8 +1876,16 @@ function renderGraphView(){
     var a = nodes[aId], b = nodes[bId];
     var x1 = a.x + a.w, y1 = a.y + a.h / 2, x2 = b.x, y2 = b.y + b.h / 2;
     var id = "ge" + parts.length;
-    var d = "M" + x1 + " " + y1 + " C" + (x1 + 55) + " " + y1 + " " + (x2 - 55) + " " + y2 + " " + x2 + " " + y2;
+    var d = "M" + x1 + " " + y1 + " C" + (x1 + 40) + " " + y1 + " " + (x2 - 40) + " " + y2 + " " + x2 + " " + y2;
     parts.push('<path id="' + id + '" class="gedge' + (on ? " on" : "") + (solid ? " solid" : "") + '" d="' + d + '"/>');
+    if (on) parts.push('<circle r="3" fill="var(--cy)"><animateMotion dur="1.6s" repeatCount="indefinite"><mpath href="#' + id + '"/></animateMotion></circle>');
+  }
+  function vedge(aId, bId, on){
+    var a = nodes[aId], b = nodes[bId];
+    var x1 = a.x + a.w / 2, y1 = a.y + a.h, x2 = b.x + b.w / 2, y2 = b.y;
+    var id = "ge" + parts.length;
+    var d = "M" + x1 + " " + y1 + " C" + x1 + " " + (y1 + 40) + " " + x2 + " " + (y2 - 40) + " " + x2 + " " + y2;
+    parts.push('<path id="' + id + '" class="gedge' + (on ? " on" : "") + ' solid" d="' + d + '"/>');
     if (on) parts.push('<circle r="3" fill="var(--cy)"><animateMotion dur="1.6s" repeatCount="indefinite"><mpath href="#' + id + '"/></animateMotion></circle>');
   }
   var mainCy = 90 + (rows * 88) / 2;
@@ -1909,8 +1922,7 @@ function renderGraphView(){
     node("fin", 320, chainY, 86, 48, "✓ 完成", "", t.stage === "done" ? "done" : "");
     chain = ["a0", "fin"];
   }
-  var chainSrc = nodes.merge ? "merge" : "main";
-  edge(chainSrc, chain[0], false, true);
+  vedge("main", chain[0], mainState === "run");
   for (i = 0; i < chain.length - 1; i++) edge(chain[i], chain[i + 1], false, true);
   var html = '<div style="padding:10px 12px 0;font-size:11px;color:var(--mut);letter-spacing:1px">执行流程图 · 实线=固定流转 · 虚线=并行派发/汇总 · 流动光点=活跃通道 · 点节点可跳转</div>' +
     '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:900px;display:block;margin:0 auto">' + parts.join("") + '</svg>';
