@@ -281,6 +281,27 @@ main{flex:1;overflow:hidden;display:flex}
 .acchist .hmeta{color:var(--mut);flex:0 0 auto;font-size:10.5px}
 .acchist .hout{color:var(--dim);word-break:break-all;max-height:60px;overflow:hidden}
 .accdot{letter-spacing:2px;font-size:10px}
+#statsView{padding:16px 18px}
+.obhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.obhead h2{font-size:15px;color:var(--cy);letter-spacing:2px;font-weight:700;margin-right:auto}
+.obtab{background:var(--btn-bg);color:var(--btn-fg);border-radius:3px;padding:5px 12px;font-size:12px}
+.obtab.on{background:var(--pri-bg);color:var(--pri-fg)}
+.obsel{background:var(--inp-bg);color:var(--tx);border:1px solid var(--ln);border-radius:3px;padding:5px 8px;font-size:12px}
+.obgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:14px}
+.obkpi{background:var(--card-bg);border:1px solid var(--ln);border-radius:6px;padding:12px 14px}
+.obkpi .kl{font-size:11px;color:var(--mut);letter-spacing:1px}
+.obkpi .kv{font-size:22px;font-weight:700;color:var(--tx);margin-top:4px;font-family:Consolas,monospace}
+.obkpi .ks{font-size:11px;color:var(--dim);margin-top:2px}
+.obrow{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:12px;margin-bottom:14px}
+@media (max-width:900px){.obrow{grid-template-columns:1fr}}
+.obcard{background:var(--card-bg);border:1px solid var(--ln);border-radius:6px;padding:12px 14px}
+.obcard h3{font-size:11.5px;color:var(--dim);letter-spacing:2px;margin-bottom:10px}
+.oblegend{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--dim)}
+.oblegend .sw{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:7px}
+.obtable{width:100%;border-collapse:collapse;font-size:12px}
+.obtable th{color:var(--mut);text-align:left;font-weight:600;font-size:10.5px;letter-spacing:1px;padding:6px 8px;border-bottom:1px solid var(--ln)}
+.obtable td{padding:6px 8px;border-bottom:1px solid var(--ln);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:340px}
+.obtable tr:hover td{background:var(--chip-bg)}
 .thk{margin:7px 0;border:1px dashed var(--ln);border-radius:6px;overflow:hidden}
 .thkh{padding:5px 10px;font-size:11px;color:var(--mut);cursor:pointer;background:var(--sub-bg);user-select:none;letter-spacing:1px}
 .thkh em{font-style:normal;float:right}
@@ -354,6 +375,10 @@ main{flex:1;overflow:hidden;display:flex}
 #sdlgbox .btns{display:flex;gap:8px;justify-content:flex-end}
 #sclose{background:var(--btn-bg);color:var(--btn-fg);padding:8px 18px;border-radius:3px}
 .sethead{font-size:11px;color:var(--mut);letter-spacing:2px;margin:10px 0 4px}
+#moreBtn{display:none}
+#morepop{position:fixed;z-index:95;display:none;flex-direction:column;gap:4px;background:var(--bp1);border:1px solid var(--ln2);border-radius:6px;padding:6px;min-width:170px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+#morepop button{text-align:left;border:none;background:none;border-radius:4px;padding:8px 10px;font-size:12.5px;color:var(--tx)}
+#morepop button:hover{background:var(--chip-bg)}
 #themepop{position:fixed;z-index:95;background:var(--bp1);border:1px solid var(--ln2);border-radius:6px;padding:6px;display:none;flex-direction:column;gap:4px;min-width:150px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
 #themepop.on{display:flex}
 #themepop .topt{padding:7px 10px;border:1px solid transparent;border-radius:4px;font-size:12px;color:var(--tx);cursor:pointer;display:flex;gap:8px;align-items:center}
@@ -382,12 +407,13 @@ main{flex:1;overflow:hidden;display:flex}
 <body>
 <div id="app">
   <header>
-    <div class="brand">◤ OC-PILOT <small id="ver">// v1.4.9</small></div>
+    <div class="brand">◤ OC-PILOT <small id="ver">// v1.5.0</small></div>
     <div id="dot"></div>
     <select id="bk"></select>
     <span style="flex:1"></span>
     <button class="hbtn" id="thmBtn">◐ 主题</button>
     <button class="hbtn" id="impBtn">📥 导入会话</button>
+    <button class="hbtn" id="statsBtn">📊 OBS</button>
     <button class="hbtn" id="fsBtn">📁 文件</button>
     <button class="hbtn pri" id="newBtn">＋ 新任务</button>
   </header>
@@ -396,17 +422,19 @@ main{flex:1;overflow:hidden;display:flex}
   <div id="banner"></div>
   <main>
     <div id="board"></div>
+    <div id="statsView" style="display:none;flex:1;overflow-y:auto;min-width:0"></div>
     <div id="ovl"><div id="side"></div><div id="ovbox">
       <div id="ovh">
         <button class="hbtn" id="ovclose">‹ 返回</button>
         <div id="ovtitle"></div>
-        <button class="hbtn" id="thm2Btn">◐ 主题</button>
         <button class="hbtn" id="ovset" style="display:none">⚙ <span id="ovsetm">模型设置</span></button>
-        <button class="hbtn" id="ovfork" style="display:none">⑂ 分叉</button>
-        <button class="hbtn" id="ovabort" style="display:none;border-color:var(--er);color:var(--er)">■ 中断</button>
-        <button class="hbtn" id="ovmulti" style="display:none;border-color:var(--ok);color:var(--ok)">⚡转协同</button>
-        <button class="hbtn" id="ovedit">编辑</button>
-        <button class="hbtn" id="ovdel">删除</button>
+        <button class="hbtn" id="moreBtn">⋯</button>
+        <div id="morepop">
+          <button class="hbtn" id="ovabort" style="display:none;color:var(--er)">■ 中断当前会话</button>
+          <button class="hbtn" id="ovfork" style="display:none">⑂ 分叉为新任务</button>
+          <button class="hbtn" id="ovedit">✎ 编辑任务</button>
+          <button class="hbtn" id="ovdel" style="color:var(--er)">🗑 删除任务</button>
+        </div>
       </div>
       <div id="ovbody"></div>
       <div id="limitnote" style="display:none;margin:0 12px 6px;padding:8px 10px;border:1px solid var(--wn);border-radius:4px;font-size:12px;color:var(--tx);background:var(--card-bg);line-height:1.5"></div>
@@ -1292,8 +1320,20 @@ function openThemePop(btn){
   pop.classList.add("on");
 }
 $("thmBtn").onclick = function(e){ e.stopPropagation(); openThemePop(this); };
-$("thm2Btn").onclick = function(e){ e.stopPropagation(); openThemePop(this); };
-document.addEventListener("click", function(e){ if ($("themepop").classList.contains("on") && !e.target.closest("#thmBtn") && !e.target.closest("#thm2Btn") && !e.target.closest("#themepop")) $("themepop").classList.remove("on"); });
+$("moreBtn").onclick = function(e){
+  e.stopPropagation();
+  var pop = $("morepop");
+  if (pop.style.display === "flex") { pop.style.display = "none"; return; }
+  var r = this.getBoundingClientRect();
+  pop.style.display = "flex";
+  pop.style.left = Math.min(r.left, window.innerWidth - pop.offsetWidth - 8) + "px";
+  pop.style.top = (r.bottom + 6) + "px";
+};
+document.addEventListener("click", function(e){
+  var pop = $("morepop");
+  if (pop && pop.style.display === "flex" && !e.target.closest("#moreBtn") && !e.target.closest("#morepop")) pop.style.display = "none";
+});
+document.addEventListener("click", function(e){ if ($("themepop").classList.contains("on") && !e.target.closest("#thmBtn") && !e.target.closest("#themepop")) $("themepop").classList.remove("on"); });
 renderThemePop();
 
 function renderSetDialog(){
@@ -2250,7 +2290,6 @@ async function refreshDetail(full){
     $("ovabort").style.display = t.sessionID ? "" : "none";
     $("ovfork").style.display = t.sessionID ? "" : "none";
     $("ovset").style.display = t.sessionID ? "" : "none";
-    $("ovmulti").style.display = (t.mode !== "multi" && t.stage === "exec") ? "" : "none";
     renderStatBar();
     return;
   }
@@ -2307,7 +2346,6 @@ async function refreshDetail(full){
     $("ovabort").style.display = sid ? "" : "none";
     $("ovfork").style.display = sid ? "" : "none";
     $("ovset").style.display = sid ? "" : "none";
-    $("ovmulti").style.display = (t.mode !== "multi" && t.stage === "exec") ? "" : "none";
   } catch(e){ console.warn("RD-ERR:", e && e.message, e && e.stack && e.stack.split("\n")[1]); }
 }
 function bindChatExtras(dv){
@@ -2717,6 +2755,7 @@ $("dcreate").onclick = async function(){
 };
 $("dcancel").onclick = function(){ S.editing = null; $("dlg").style.display = "none"; };
 $("fsBtn").onclick = function(){ fsNav(""); };
+$("statsBtn").onclick = function(){ openStats(); };
 $("impBtn").onclick = function(){ openImport(); };
 
 async function unlinkedSessions(){
@@ -2850,24 +2889,6 @@ $("ovfork").onclick = async function(){
 };
 
 $("ovclose").onclick = function(){ closeDetail(); };
-$("ovmulti").onclick = async function(){
-  if (!S.curTask) return;
-  var t = S.curTask;
-  if (!confirm("转为多AGENT协同？将并行拉起分工智能体（现有会话的成果作为上下文带给各分工）。")) return;
-  try {
-    if (t.sessionID && activityOf(t.sessionID) === "run") {
-      await api("/session/" + t.sessionID + "/abort", { method: "POST" });
-    }
-    var ctx = t.sessionID ? await lastAssistantText(t.sessionID) : "";
-    await tApi("PATCH", { mode: "multi" }, t.id);
-    t.mode = "multi";
-    await spawnWorkers(t, ctx);
-    renderBoard._sig = "";
-    refreshAll();
-    toast("已转协同模式，分工已启动");
-  } catch(e){ toast("转换失败: " + (e.message||e)); }
-};
-
 $("ovedit").onclick = function(){
   if (!S.curTask) return;
   S.editing = S.curTask.id;
@@ -3066,6 +3087,123 @@ async function prefetchLiveTools(){
 })();
 applyTheme(localStorage.getItem("oc_theme") || "orange");
 S.fastMs = parseInt(localStorage.getItem("oc_fastms") || "2500", 10);
+var OB = { open: false, range: "7d", proj: "", cache: null };
+async function openStats(){
+  OB.open = true;
+  document.getElementById("statsView").style.display = "block";
+  document.getElementById("board").classList.add("gone");
+  await renderStats();
+}
+function closeStats(){
+  OB.open = false;
+  document.getElementById("statsView").style.display = "none";
+  document.getElementById("board").classList.remove("gone");
+  renderBoard._sig = "";
+  refreshAll();
+}
+function obRangeMs(k){
+  if (k === "today") return 24*3600*1000;
+  if (k === "7d") return 7*24*3600*1000;
+  if (k === "30d") return 30*24*3600*1000;
+  return 0;
+}
+function obDonut(segs, total, size){
+  var r = size / 2 - 10, cx = size / 2, cy = size / 2, acc = 0;
+  var out = '<svg width="' + size + '" height="' + size + '">';
+  out += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="var(--ln)" stroke-width="14"/>';
+  var C = 2 * Math.PI * r;
+  for (var i=0;i<segs.length;i++){
+    var v = segs[i].v;
+    if (!v || !total) continue;
+    var frac = v / total, len = frac * C;
+    out += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + segs[i].c + '" stroke-width="14" stroke-dasharray="' + Math.max(0, len - 2) + ' ' + (C - Math.max(0, len - 2)) + '" stroke-dashoffset="' + (-acc) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')" stroke-linecap="butt"/>';
+    acc += len;
+  }
+  out += '<text x="' + cx + '" y="' + (cy + 5) + '" text-anchor="middle" fill="var(--tx)" font-size="16" font-weight="700" font-family="Consolas,monospace">' + fmtTokens(total) + '</text>';
+  out += '<text x="' + cx + '" y="' + (cy + 22) + '" text-anchor="middle" fill="var(--mut)" font-size="10">TOKENS</text></svg>';
+  return out;
+}
+function obBars(byDay, days){
+  var max = 1;
+  for (var k in byDay) max = Math.max(max, byDay[k]);
+  var W = 640, H = 150, bw = Math.max(6, Math.floor(W / Math.max(1, days.length)) - 4);
+  var out = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%">';
+  for (var i=0;i<days.length;i++){
+    var v = byDay[days[i]] || 0;
+    var h = Math.round((H - 28) * v / max);
+    var x = 8 + i * (bw + 4);
+    out += '<rect x="' + x + '" y="' + (H - 20 - h) + '" width="' + bw + '" height="' + Math.max(1, h) + '" rx="2" fill="var(--cyb)" opacity="0.9"><title>' + days[i] + ': ' + fmtTokens(v) + '</title></rect>';
+    if (days.length <= 10 || i % Math.ceil(days.length / 10) === 0) out += '<text x="' + (x + bw / 2) + '" y="' + (H - 6) + '" text-anchor="middle" fill="var(--mut)" font-size="8.5">' + days[i].slice(5) + '</text>';
+  }
+  return out + '</svg>';
+}
+async function renderStats(){
+  var el = document.getElementById("statsView");
+  if (!el) return;
+  el.innerHTML = '<div class="empty">加载统计…</div>';
+  var sessions = [];
+  try { sessions = (await api("/session")) || []; } catch(e){ el.innerHTML = '<div class="empty">无法获取会话数据</div>'; return; }
+  var projs = {};
+  for (var i=0;i<sessions.length;i++){
+    var p = (sessions[i].directory || "").split(/[\\/]/).pop() || "—";
+    projs[p] = 1;
+  }
+  var rms = obRangeMs(OB.range);
+  var now = Date.now();
+  var sel = sessions.filter(function(s){
+    var t = (s.time && (s.time.updated || s.time.created)) || 0;
+    if (rms && now - t > rms) return false;
+    var p = (s.directory || "").split(/[\\/]/).pop() || "—";
+    if (OB.proj && p !== OB.proj) return false;
+    return true;
+  });
+  var agg = { input:0, output:0, reasoning:0, cache:0, cost:0 };
+  var byDay = {}, top = [];
+  for (i=0;i<sel.length;i++){
+    var s2 = sel[i], tk = s2.tokens || {};
+    var cr = (tk.cache && tk.cache.read) || 0;
+    agg.input += tk.input || 0; agg.output += tk.output || 0; agg.reasoning += tk.reasoning || 0; agg.cache += cr; agg.cost += s2.cost || 0;
+    var d = new Date((s2.time && s2.time.updated) || Date.now());
+    var dk = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+    byDay[dk] = (byDay[dk] || 0) + (tk.input || 0) + (tk.output || 0) + (tk.reasoning || 0) + cr;
+    top.push({ title: s2.title || s2.id.slice(4,14), cost: s2.cost || 0, tk: (tk.input||0)+(tk.output||0)+(tk.reasoning||0), dir: (s2.directory||"").split(/[\\/]/).pop() || "—", t: (s2.time && s2.time.updated) || 0 });
+  }
+  top.sort(function(a,b){ return b.cost - a.cost || b.tk - a.tk; });
+  var daysN = rms ? Math.min(30, Math.max(1, Math.ceil(rms / 86400000))) : 30;
+  var days = [];
+  for (i=daysN-1;i>=0;i--){ var dd = new Date(now - i * 86400000); days.push(dd.getFullYear() + "-" + ("0" + (dd.getMonth()+1)).slice(-2) + "-" + ("0" + dd.getDate()).slice(-2)); }
+  var totalTok = agg.input + agg.output + agg.reasoning + agg.cache;
+  var html = '<div class="obhead"><h2>◤ OBS · 用量统计</h2>' +
+    '<button class="hbtn" id="obclose">‹ 返回看板</button></div>' +
+    '<div class="obhead">' +
+    [["today","今日"],["7d","7 天"],["30d","30 天"],["all","全部"]].map(function(x){ return '<button class="obtab' + (OB.range===x[0]?" on":"") + '" data-range="' + x[0] + '">' + x[1] + '</button>'; }).join("") +
+    '<select class="obsel" id="obproj"><option value="">全部项目</option>' + Object.keys(projs).sort().map(function(p2){ return '<option value="' + esc(p2) + '"' + (OB.proj===p2?" selected":"") + '>' + esc(p2) + '</option>'; }).join("") + '</select>' +
+    '</div>' +
+    '<div class="obgrid">' +
+    '<div class="obkpi"><div class="kl">总花费</div><div class="kv">$' + agg.cost.toFixed(2) + '</div><div class="ks">' + sel.length + ' 个会话</div></div>' +
+    '<div class="obkpi"><div class="kl">输入 TOKENS</div><div class="kv">' + fmtTokens(agg.input) + '</div><div class="ks">含缓存复用 ' + fmtTokens(agg.cache) + '</div></div>' +
+    '<div class="obkpi"><div class="kl">输出 TOKENS</div><div class="kv">' + fmtTokens(agg.output) + '</div><div class="ks">思考 ' + fmtTokens(agg.reasoning) + '</div></div>' +
+    '<div class="obkpi"><div class="kl">日均 TOKENS</div><div class="kv">' + fmtTokens(Math.round(totalTok / Math.max(1, daysN))) + '</div><div class="ks">按最近活动日归类</div></div>' +
+    '</div>' +
+    '<div class="obrow"><div class="obcard"><h3>TOKEN 构成</h3><div style="display:flex;gap:16px;align-items:center">' +
+    obDonut([{v:agg.input,c:"var(--cy)"},{v:agg.output,c:"var(--ok)"},{v:agg.reasoning,c:"var(--wn)"},{v:agg.cache,c:"var(--ln2)"}], totalTok, 150) +
+    '<div class="oblegend">' +
+    '<span><span class="sw" style="background:var(--cy)"></span>输入 ' + fmtTokens(agg.input) + '</span>' +
+    '<span><span class="sw" style="background:var(--ok)"></span>输出 ' + fmtTokens(agg.output) + '</span>' +
+    '<span><span class="sw" style="background:var(--wn)"></span>思考 ' + fmtTokens(agg.reasoning) + '</span>' +
+    '<span><span class="sw" style="background:var(--ln2)"></span>缓存读取 ' + fmtTokens(agg.cache) + '</span>' +
+    '</div></div></div>' +
+    '<div class="obcard"><h3>每日 TOKEN 用量</h3>' + obBars(byDay, days) + '</div></div>' +
+    '<div class="obcard"><h3>花费 TOP 会话</h3><table class="obtable"><thead><tr><th>会话</th><th>项目</th><th>TOKENS</th><th>花费</th><th>最近活动</th></tr></thead><tbody>' +
+    top.slice(0, 12).map(function(x){ return '<tr><td>' + esc(x.title) + '</td><td>' + esc(x.dir) + '</td><td>' + fmtTokens(x.tk) + '</td><td>$' + x.cost.toFixed(3) + '</td><td>' + fmtRel(x.t) + '</td></tr>'; }).join("") +
+    '</tbody></table></div>';
+  el.innerHTML = html;
+  document.getElementById("obclose").onclick = closeStats;
+  var tabs = el.querySelectorAll("[data-range]");
+  for (i=0;i<tabs.length;i++) tabs[i].onclick = function(){ OB.range = this.getAttribute("data-range"); renderStats(); };
+  document.getElementById("obproj").onchange = function(){ OB.proj = this.value; renderStats(); };
+}
+
 loadBackends();
 loadSelectorData();
 loadAgentsList();
