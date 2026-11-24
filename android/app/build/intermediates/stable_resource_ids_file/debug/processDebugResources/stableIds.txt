@@ -1,0 +1,4 @@
+com.ocpilot.app:string/app_name = 0x7f040000
+com.ocpilot.app:mipmap/ic_launcher = 0x7f030000
+com.ocpilot.app:drawable/ic_launcher_fg = 0x7f020000
+com.ocpilot.app:color/icon_bg = 0x7f010000

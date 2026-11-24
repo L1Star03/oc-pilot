@@ -1,0 +1,7 @@
+com.ocpilot.app-pngs-0 C:\Users\ROG\opencode-pilot\android\app\build\generated\res\pngs\debug
+com.ocpilot.app-resValues-1 C:\Users\ROG\opencode-pilot\android\app\build\generated\res\resValues\debug
+com.ocpilot.app-packageDebugResources-2 C:\Users\ROG\opencode-pilot\android\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
+com.ocpilot.app-packageDebugResources-3 C:\Users\ROG\opencode-pilot\android\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
+com.ocpilot.app-debug-4 C:\Users\ROG\opencode-pilot\android\app\build\intermediates\merged_res\debug\mergeDebugResources
+com.ocpilot.app-debug-5 C:\Users\ROG\opencode-pilot\android\app\src\debug\res
+com.ocpilot.app-main-6 C:\Users\ROG\opencode-pilot\android\app\src\main\res

@@ -2,8 +2,11 @@ tasks.json
 *.log
 node_modules/
 .DS_Store
-.gradle/
-build/
-local.properties
-*.apk
-!gradle/wrapper/gradle-wrapper.jar
+ohos/.hvigor/
+ohos/.idea/
+ohos/.sign/
+ohos/keys/
+ohos/work.p12
+ohos/entry/build/
+ohos/oh_modules/
+ohos/entry/oh_modules/

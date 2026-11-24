@@ -1,0 +1,36 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.ocpilot.app-debug-4:/values_values.arsc.flat",
+            "map": [
+                {
+                    "source": "C:\\Users\\ROG\\opencode-pilot\\android\\app\\src\\main\\res\\values\\colors.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "41",
+                        "endOffsets": "92"
+                    }
+                },
+                {
+                    "source": "C:\\Users\\ROG\\opencode-pilot\\android\\app\\src\\main\\res\\values\\strings.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "45",
+                        "endOffsets": "96"
+                    },
+                    "to": {
+                        "startLines": "3",
+                        "startColumns": "4",
+                        "startOffsets": "97",
+                        "endColumns": "45",
+                        "endOffsets": "138"
+                    }
+                }
+            ]
+        }
+    ]
+}
