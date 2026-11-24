@@ -1,0 +1,42 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\ROG\\.ohos\\config\\default_ohos_b-XeLSfI0JCDlnP6j3fYzcqmTX24SRckuMu-Ngh6h9Q=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001BA2A228C28989ECBB0E7DF337532EA3DE2E7E8DC919374B0A3750AAA81359CF04AEF049EE597906",
+          "profile": "C:\\Users\\ROG\\.ohos\\config\\default_ohos_b-XeLSfI0JCDlnP6j3fYzcqmTX24SRckuMu-Ngh6h9Q=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\ROG\\.ohos\\config\\default_ohos_b-XeLSfI0JCDlnP6j3fYzcqmTX24SRckuMu-Ngh6h9Q=.p12",
+          "storePassword": "0000001BE1BA975A095CE23CD0753FF688A8CBC0F761A2331787D53C6A376925AF1D28FA8BB5ED4C047264"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "compatibleSdkVersion": "5.0.0(12)",
+        "runtimeOS": "HarmonyOS",
+        "targetSdkVersion": "26.0.1"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}

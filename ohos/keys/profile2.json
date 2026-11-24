@@ -1,0 +1,8 @@
+{
+  "version-name": "2.0.0", "version-code": 2, "uuid": "6a0d2c5f-c8a6-4c53-a963-9d0bfb9f7d90",
+  "validity": { "not-before": 1795557597, "not-after": 1827093597 },
+  "type": "debug",
+  "bundle-info": { "developer-id": "ocpilot", "development-certificate": "-----BEGIN CERTIFICATE-----\nMIIB6TCCAY6gAwIBAgIUFFfWWQ4Lvgmp5Ei49PS+usNnnYMwCgYIKoZIzj0EAwIw\nRjELMAkGA1UEBhMCQ04xEDAOBgNVBAoMB29jcGlsb3QxDDAKBgNVBAsMA2RldjEX\nMBUGA1UEAwwOb2NwaWxvdCBTdWIgQ0EwHhcNMjYxMTI0MjE1OTM5WhcNMzYxMTIx\nMjE1OTM5WjBDMQswCQYDVQQGEwJDTjEQMA4GA1UECgwHb2NwaWxvdDEMMAoGA1UE\nCwwDZGV2MRQwEgYDVQQDDAtvY3BpbG90IEFwcDBZMBMGByqGSM49AgEGCCqGSM49\nAwEHA0IABPVVSHL7tSZ/sosIHTl7L/qEMYz1cK2AYYkIZRPYuE9UkGu4rqgv4WCG\nTIH+HObtftNlSv2hWNcO2kBiIiLJ+vSjXTBbMAwGA1UdEwEB/wQCMAAwCwYDVR0P\nBAQDAgKEMB0GA1UdDgQWBBT5qwpi/DvrcBOyKqX03FCyU7L1xDAfBgNVHSMEGDAW\ngBSsJg/6hr1I4So7rcxJ0I0K3K0q1zAKBggqhkjOPQQDAgNJADBGAiEAoExpqwpL\nLSIFD+1Y7g0Lu8ZzWxSKLLVOtRBZB9vYoCwCIQD0E6UxxaXYCVoe5mY5cIDJ66jC\nRHhlqnz5Ptrke0y/mA==\n-----END CERTIFICATE-----", "bundle-name": "com.ocpilot.app", "apl": "normal", "app-feature": "hos_normal_app" },
+  "debug-info": { "device-ids": [], "device-id-type": "udid" },
+  "issuer": "pki_internal"
+}

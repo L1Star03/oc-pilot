@@ -1,0 +1,1 @@
+{"modelVersion":"5.0.0","name":"oc-pilot","version":"1.0.0","description":"oc-pilot board","main":"","author":"","license":"ISC","dependencies":{},"devDependencies":{"@ohos/hypium":"1.0.6"}}

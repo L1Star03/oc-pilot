@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "app_name", "value": "oc-pilot" },
+    { "name": "EntryAbility_desc", "value": "oc-pilot board" },
+    { "name": "module_desc", "value": "oc-pilot entry module" }
+  ]
+}
