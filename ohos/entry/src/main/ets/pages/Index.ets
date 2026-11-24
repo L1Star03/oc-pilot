@@ -1,6 +1,6 @@
 import { webview } from '@kit.ArkWeb';
 
-const URLS: string[] = ['https://laptop-3ekji6v6.tail01cb1b.ts.net', 'http://10.10.147.21:4097', 'http://100.87.84.93:4097'];
+const URLS: string[] = ['https://example.com', 'https://laptop-3ekji6v6.tail01cb1b.ts.net', 'http://10.10.147.21:4097', 'http://100.87.84.93:4097'];
 
 @Entry
 @Component
