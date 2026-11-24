@@ -407,7 +407,7 @@ main{flex:1;overflow:hidden;display:flex}
 <body>
 <div id="app">
   <header>
-    <div class="brand">◤ OC-PILOT <small id="ver">// v1.5.0</small></div>
+    <div class="brand">◤ OC-PILOT <small id="ver">// v1.5.1</small></div>
     <div id="dot"></div>
     <select id="bk"></select>
     <span style="flex:1"></span>
@@ -836,7 +836,14 @@ async function checkInterruptedAndResume(sid){
   } catch(e){}
 }
 function watchWake(){
-  var linked = taskLinkedSids();
+  var linked = {};
+  for (var wid0 in S.tasks) {
+    if (S.tasks[wid0].stage !== "exec") continue;
+    var t0 = S.tasks[wid0];
+    if (t0.sessionID) linked[t0.sessionID] = 1;
+    (t0.workers || []).forEach(function(w){ linked[w.sessionID] = 1; });
+    if (t0.mergeSid) linked[t0.mergeSid] = 1;
+  }
   for (var sid in S.statuses) {
     if ((S.statuses[sid].type || S.statuses[sid].status) === "busy") {
       S.wasBusy[sid] = 1;
@@ -1275,7 +1282,13 @@ function updateSetButton(){
   var a = localStorage.getItem("oc_agent") || "";
   var el = $("ovsetm");
   var e2 = localStorage.getItem("oc_effort") || "";
-  if (el) el.textContent = "模型设置" + (m ? " · " + m.split("/").pop() : "") + (a ? " · " + a : "") + (e2 ? " · " + e2 : "");
+  var actual = "";
+  if (S.curTask && S.curTask.sessionID && S.lastUsage[S.curTask.sessionID] && S.lastUsage[S.curTask.sessionID].model) {
+    var mm = S.lastUsage[S.curTask.sessionID].model;
+    actual = typeof mm === "object" ? String(mm.modelID || mm.model || "") : String(mm);
+  }
+  if (!actual && m) actual = m.split("/").pop();
+  if (el) el.textContent = "模型设置" + (actual ? " · " + actual : "") + (e2 ? " · 思考" + e2 : "");
 }
 var THEMES = [
   { id: "orange", name: "黑橙", desc: "深炭底 + 暖橙 #e0873d" },
@@ -2286,10 +2299,10 @@ async function refreshDetail(full){
   if (S.curTab === "acc") { renderAccView(); renderStatBar(); return; }
   if (S.curTab === "agents") {
     renderAgentsOverview();
-    $("abort").style.display = t.sessionID ? "" : "none";
-    $("ovabort").style.display = t.sessionID ? "" : "none";
-    $("ovfork").style.display = t.sessionID ? "" : "none";
-    $("ovset").style.display = t.sessionID ? "" : "none";
+    $("abort").style.display = t.sessionID ? "inline-block" : "none";
+    $("ovabort").style.display = t.sessionID ? "inline-block" : "none";
+    $("ovfork").style.display = t.sessionID ? "inline-block" : "none";
+    $("ovset").style.display = t.sessionID ? "inline-block" : "none";
     renderStatBar();
     return;
   }
@@ -2342,10 +2355,10 @@ async function refreshDetail(full){
       var nb = sc2.scrollHeight - sc2.scrollTop - sc2.clientHeight < 140;
       if (nb) sc2.scrollTop = sc2.scrollHeight;
     }
-    $("abort").style.display = sid ? "" : "none";
-    $("ovabort").style.display = sid ? "" : "none";
-    $("ovfork").style.display = sid ? "" : "none";
-    $("ovset").style.display = sid ? "" : "none";
+    $("abort").style.display = sid ? "inline-block" : "none";
+    $("ovabort").style.display = sid ? "inline-block" : "none";
+    $("ovfork").style.display = sid ? "inline-block" : "none";
+    $("ovset").style.display = sid ? "inline-block" : "none";
   } catch(e){ console.warn("RD-ERR:", e && e.message, e && e.stack && e.stack.split("\n")[1]); }
 }
 function bindChatExtras(dv){
@@ -2491,21 +2504,29 @@ function renderStatBar(){
   var se = sid ? S.sessions[sid] : null;
   var model = "";
   var modelId = "";
-  if (sid) {
+  var lu0 = sid ? S.lastUsage[sid] : null;
+  if (lu0 && lu0.model) {
+    model = typeof lu0.model === "object" ? ((lu0.model.providerID || "") + "/" + (lu0.model.modelID || lu0.model.model || "")) : String(lu0.model);
+    modelId = model;
+  }
+  if (!model && sid) {
     for (var i=S.msgs.length-1;i>=0;i--) {
       var im = S.msgs[i].info && S.msgs[i].info.model;
-      if (im && typeof im === "object") { model = (im.providerID ? im.providerID + "/" : "") + (im.modelID || im.model || ""); modelId = model; break; }
-      if (typeof im === "string" && im) { model = im; modelId = im; break; }
       var pv = S.msgs[i].info && S.msgs[i].info.providerID;
       var mv2 = S.msgs[i].info && S.msgs[i].info.modelID;
+      if (im && typeof im === "object" && (im.modelID || im.model)) { model = (im.providerID ? im.providerID + "/" : "") + (im.modelID || im.model || ""); modelId = model; break; }
+      if (typeof im === "string" && im) { model = im; modelId = im; break; }
       if (pv && mv2) { model = pv + "/" + mv2; modelId = model; break; }
     }
   }
-  if (!model) { var sel = localStorage.getItem("oc_model") || ""; if (sel) { model = sel; modelId = sel; } }
+  var selModel = localStorage.getItem("oc_model") || "";
+  if (!model && selModel) { model = selModel; modelId = selModel; }
   var effort = localStorage.getItem("oc_effort") || "";
   var agent = localStorage.getItem("oc_agent") || "";
   var parts = [];
-  parts.push("模型 <b>" + esc(model || "默认") + "</b>");
+  if (model) parts.push("模型 <b>" + esc(model) + "</b>");
+  if (selModel && model && selModel !== model) parts.push("已选 <b>" + esc(selModel.split("/").pop()) + "</b>(下次生效)");
+  if (!model) parts.push("模型 <b>—</b>");
   parts.push("强度 <b>" + esc(effort || "默认") + "</b>");
   if (agent) parts.push("agent <b>" + esc(agent) + "</b>");
   var lu = sid ? S.lastUsage[sid] : null;
@@ -2928,6 +2949,30 @@ $("send").onclick = async function(){
       await sendMsg(sid, v, sendOpts());
       toast("已发送，等待回复…");
       updateRunBar();
+      (function(watchSid){
+        setTimeout(async function(){
+          try {
+            if (!S.curTask || S.viewSid) return;
+            var msgs = (await api("/session/" + watchSid + "/message?limit=2")) || [];
+            var last = msgs[msgs.length - 1];
+            var lastTxt = last && last.parts ? (last.parts.filter(function(p){ return p.type === "text"; }).map(function(p){ return p.text; }).join("") || "") : "";
+            var isReply = last && last.info && last.info.role === "assistant" && lastTxt.trim().length > 0;
+            var busyNow = activityOf(watchSid) === "run";
+            if (!isReply && !busyNow) {
+              var errTxt = last && last.info && last.info.error && last.info.error.message ? last.info.error.message : "";
+              var allTxt = (errTxt + " " + lastTxt).trim();
+              var quota = /(rate.?limit|quota|429|限流|限额|额度|余额不足|insufficient|too.?many.?requests|billing|payment)/i.test(allTxt);
+              var note = $("limitnote");
+              if (note) {
+                note.innerHTML = '⚠ <b>' + (quota ? "模型额度/限流" : "发送后无响应") + '</b>：' + (quota ? "本次请求可能未完成，请到 ⚙ 模型设置 更换模型或充值后重发。" : "服务器未返回回复，可能请求失败，可重试或更换模型。") + (allTxt ? '<br><span style="color:var(--mut)">' + esc(allTxt.slice(0, 200)) + '</span>' : '');
+                note.style.display = "";
+              }
+              toast(quota ? "⚠ 模型额度不足/限流，请更换模型" : "⚠ 发送后 20s 无响应");
+              markDirty();
+            }
+          } catch(e2){}
+        }, 20000);
+      })(sid);
     }
     setTimeout(markDirty, 600);
   } catch(e){ toast("发送失败"); }
@@ -3248,7 +3293,7 @@ async function fastLoop(){
     } catch(e){}
   }
 }
-document.addEventListener("visibilitychange", function(){ if (!document.hidden) { S.lastSseOk = 0; refreshAll(); prefetchTodos(); prefetchLiveTools(); } });
+document.addEventListener("visibilitychange", function(){ if (!document.hidden) { refreshAll(); prefetchTodos(); prefetchLiveTools(); } });
 window.addEventListener("online", function(){ S.lastSseOk = 0; sseStart(); refreshAll(); });
 
 $("dlg").addEventListener("click", function(e){ if (e.target === $("dlg")) $("dcancel").click(); });
