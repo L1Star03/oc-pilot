@@ -407,7 +407,7 @@ main{flex:1;overflow:hidden;display:flex}
 <body>
 <div id="app">
   <header>
-    <div class="brand">◤ OC-PILOT <small id="ver">// v1.5.1</small></div>
+    <div class="brand">◤ OC-PILOT <small id="ver">// v1.5.2</small></div>
     <div id="dot"></div>
     <select id="bk"></select>
     <span style="flex:1"></span>
@@ -2293,14 +2293,20 @@ function hasTextSelection(){
 async function refreshDetail(full){
   if (!S.curTask) return;
   var t = S.curTask;
-  if (S.curTab !== refreshDetail._lastTab) { refreshDetail._sig = ""; dbgLog("渲染:" + S.curTab); }
+  if (S.curTab !== refreshDetail._lastTab) {
+    refreshDetail._sig = "";
+    renderGraphView._sig = "";
+    renderAccView._sig = "";
+    dbgLog("渲染:" + S.curTab);
+  }
   refreshDetail._lastTab = S.curTab;
   if (S.curTab === "graph") { renderGraphView(); renderStatBar(); return; }
   if (S.curTab === "acc") { renderAccView(); renderStatBar(); return; }
   if (S.curTab === "agents") {
     renderAgentsOverview();
-    $("abort").style.display = t.sessionID ? "inline-block" : "none";
-    $("ovabort").style.display = t.sessionID ? "inline-block" : "none";
+    var abOn2 = t.sessionID && (activityOf(t.sessionID) === "run" || stOf(t.sessionID) === "busy");
+    $("abort").style.display = abOn2 ? "inline-block" : "none";
+    $("ovabort").style.display = abOn2 ? "inline-block" : "none";
     $("ovfork").style.display = t.sessionID ? "inline-block" : "none";
     $("ovset").style.display = t.sessionID ? "inline-block" : "none";
     renderStatBar();
@@ -2355,8 +2361,9 @@ async function refreshDetail(full){
       var nb = sc2.scrollHeight - sc2.scrollTop - sc2.clientHeight < 140;
       if (nb) sc2.scrollTop = sc2.scrollHeight;
     }
-    $("abort").style.display = sid ? "inline-block" : "none";
-    $("ovabort").style.display = sid ? "inline-block" : "none";
+    var abOn = sid && (activityOf(sid) === "run" || stOf(sid) === "busy");
+    $("abort").style.display = abOn ? "inline-block" : "none";
+    $("ovabort").style.display = abOn ? "inline-block" : "none";
     $("ovfork").style.display = sid ? "inline-block" : "none";
     $("ovset").style.display = sid ? "inline-block" : "none";
   } catch(e){ console.warn("RD-ERR:", e && e.message, e && e.stack && e.stack.split("\n")[1]); }
@@ -2565,23 +2572,24 @@ function updateRunBar(){
 
 function checkLimitWarn(m){
   var info = m.info || {};
-  var txt = "";
-  if (info.error && info.error.message) txt += info.error.message;
+  var errTxt = "";
+  if (info.error && info.error.message) errTxt = String(info.error.message);
   var parts = m.parts || [];
   for (var i=0;i<parts.length;i++) {
     var p = parts[i];
-    if (p.type === "text" && p.text) txt += " " + p.text;
-    if (p.type === "tool" && p.state && p.state.status === "error" && p.state.output) txt += " " + String(p.state.output);
+    if (p.type === "tool" && p.state && p.state.status === "error" && p.state.output) errTxt += " " + String(p.state.output).slice(0, 300);
   }
-  if (!txt) return;
-  if (!/(rate.?limit|quota|429|限流|限额|额度|余额不足|insufficient|too.?many.?requests|overloaded|billing|payment required)/i.test(txt)) return;
+  var hasReply = parts.some(function(p2){ return p2.type === "text" && p2.text && p2.text.trim(); });
+  if (hasReply && !errTxt) { var nn = $("limitnote"); if (nn) nn.style.display = "none"; return; }
+  if (!errTxt) return;
+  if (!/(rate.?limit|quota|429|限流|限额|额度|余额不足|insufficient|too.?many.?requests|overloaded|billing|payment)/i.test(errTxt)) return;
   var id = info.id || "x";
   if (S.limitWarned[id]) return;
   S.limitWarned[id] = 1;
-  toast("⚠ 检测到模型限额/限流：请切换模型（⚙ 设置）或稍后重试");
+  toast("⚠ 模型限额/限流：请切换模型（⚙ 设置）或稍后重试");
   var note = $("limitnote");
   if (note) {
-    note.innerHTML = '⚠ <b>模型限额/限流</b>：本次请求可能未完成。可切换模型（右上 ⚙）后重新发送。<span style="color:var(--mut)">' + esc(txt.slice(0, 120)) + '</span>';
+    note.innerHTML = '⚠ <b>模型限额/限流</b>：' + esc(errTxt.trim().slice(0, 160)) + '<br>可切换模型（右上 ⚙）后重新发送。';
     note.style.display = "";
   }
 }
@@ -2959,16 +2967,21 @@ $("send").onclick = async function(){
             var isReply = last && last.info && last.info.role === "assistant" && lastTxt.trim().length > 0;
             var busyNow = activityOf(watchSid) === "run";
             if (!isReply && !busyNow) {
-              var errTxt = last && last.info && last.info.error && last.info.error.message ? last.info.error.message : "";
-              var allTxt = (errTxt + " " + lastTxt).trim();
-              var quota = /(rate.?limit|quota|429|限流|限额|额度|余额不足|insufficient|too.?many.?requests|billing|payment)/i.test(allTxt);
-              var note = $("limitnote");
-              if (note) {
-                note.innerHTML = '⚠ <b>' + (quota ? "模型额度/限流" : "发送后无响应") + '</b>：' + (quota ? "本次请求可能未完成，请到 ⚙ 模型设置 更换模型或充值后重发。" : "服务器未返回回复，可能请求失败，可重试或更换模型。") + (allTxt ? '<br><span style="color:var(--mut)">' + esc(allTxt.slice(0, 200)) + '</span>' : '');
-                note.style.display = "";
+              var errTxt2 = "";
+              if (last && last.info && last.info.error && last.info.error.message) errTxt2 = String(last.info.error.message);
+              if (!errTxt2 && last && last.parts) {
+                last.parts.forEach(function(p3){ if (p3.type === "tool" && p3.state && p3.state.status === "error" && p3.state.output) errTxt2 += " " + String(p3.state.output).slice(0, 200); });
               }
-              toast(quota ? "⚠ 模型额度不足/限流，请更换模型" : "⚠ 发送后 20s 无响应");
-              markDirty();
+              if (errTxt2) {
+                var quota2 = /(rate.?limit|quota|429|限流|限额|额度|余额不足|insufficient|too.?many.?requests|billing|payment)/i.test(errTxt2);
+                var note2 = $("limitnote");
+                if (note2) {
+                  note2.innerHTML = '⚠ <b>' + (quota2 ? "模型额度/限流" : "请求出错") + '</b>：' + esc(errTxt2.trim().slice(0, 180)) + '<br>可切换模型（右上 ⚙）后重新发送。';
+                  note2.style.display = "";
+                }
+                toast(quota2 ? "⚠ 模型额度不足/限流" : "⚠ 请求出错");
+                markDirty();
+              }
             }
           } catch(e2){}
         }, 20000);
