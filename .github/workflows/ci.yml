@@ -1,0 +1,47 @@
+name: CI
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps
+        run: npm install
+
+      - name: Syntax check
+        shell: pwsh
+        run: |
+          node -e "const s=require('fs').readFileSync('server.js','utf8'); new Function(s); console.log('server.js OK')"
+          node -e "const s=require('fs').readFileSync('public/index.html','utf8'); const m=s.match(/<script>([\s\S]*)<\/script>/); new Function(m[1]); console.log('index.html OK')"
+
+      - name: Start demo server
+        shell: pwsh
+        run: |
+          $env:PILOT_TASKS_FILE = "$PWD\demo\tasks.json"
+          $env:PORT = "4098"
+          $env:PILOT_HOST = "127.0.0.1"
+          Start-Process node -ArgumentList "server.js" -RedirectStandardOutput pilot.out.log -RedirectStandardError pilot.err.log -NoNewWindow
+          Start-Sleep -Seconds 6
+          $r = Invoke-WebRequest -Uri "http://127.0.0.1:4098/tasks" -UseBasicParsing -TimeoutSec 10
+          Write-Host "demo server: $($r.StatusCode)"
+
+      - name: Run E2E tests (headless Edge)
+        env:
+          TEST_BASE: http://127.0.0.1:4098
+        run: node tools/test.js
+
+      - name: Dump logs on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-Content pilot.out.log -ErrorAction SilentlyContinue | Select-Object -Last 30
+          Get-Content pilot.err.log -ErrorAction SilentlyContinue | Select-Object -Last 30
