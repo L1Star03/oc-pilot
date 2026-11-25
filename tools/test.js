@@ -19,14 +19,14 @@ function record(name, ok, extra) {
   await page.setViewport({ width: 1400, height: 900 });
   await page.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 25000 }).catch(() => {});
   await page.waitForFunction(() => window.S && Object.keys(S.tasks || {}).length > 0, { timeout: 25000 }).catch(async () => {
-    const info = await page.evaluate(() => ({
+    const info = await page.evaluate(async () => ({
       title: document.title,
-      bodyStart: (document.body ? document.body.innerHTML.slice(0, 150) : 'NOBODY'),
       hasS: typeof window.S,
-      scripts: document.querySelectorAll('script').length,
-      readyState: document.readyState
+      tasksKeys: window.S ? Object.keys(S.tasks || {}).length : -1,
+      fetchProbe: await fetch("/tasks").then(r => "HTTP " + r.status).catch(e => "FETCHERR " + String(e).slice(0, 80)),
+      rawProbe: await fetch("/tasks").then(r => r.text()).then(t => t.slice(0, 120)).catch(e => "TXTERR")
     })).catch(e => ({ evalFail: String(e).slice(0, 100) }));
-    console.log('DIAG after wait timeout:', JSON.stringify(info), 'consoleErrs:', consoleMsgs.slice(0, 3).join(' | '));
+    console.log('DIAG2:', JSON.stringify(info), 'consoleErrs:', consoleMsgs.slice(0, 3).join(' | '), 'pageErrs:', errors.slice(0, 3).join(' | '));
   });
   await new Promise(r => setTimeout(r, 1500));
 
