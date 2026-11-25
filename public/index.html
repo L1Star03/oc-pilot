@@ -1098,8 +1098,9 @@ function cardHtml(t){
     var acc = t.acc;
     var rounds = t.acc.rounds || [];
     var statusTxt = "";
-    if (acc.status === "tampered" || acc.tampered) statusTxt = "⚠脚本被篡改";
-    else if (acc.status === "waiting_human") statusTxt = "◉待终审";
+    if (acc.status === "tampered" || acc.tampered) statusTxt = "⚠篡改";
+    else if (acc.governance && acc.governance.failures) statusTxt = "⚠治理";
+    else if (acc.status === "waiting_human") statusTxt = "◉终审";
     else if (acc.done) statusTxt = "☑验收";
     else statusTxt = "R" + ((acc.cur||0)+1) + "/" + rounds.length;
     if (acc.scopeInvalidated) statusTxt += " ⚠范围变" + acc.scopeInvalidated;
@@ -2021,7 +2022,7 @@ function renderAccView(){
   var sig = t.id + ":" + JSON.stringify(acc);
   if (sig === renderAccView._sig) return;
   renderAccView._sig = sig;
-  var statusTxt = acc.done ? "全部通过" : (acc.tampered ? "⚠ 验收脚本被篡改" : (acc.pause ? "已暂停（需人工介入）" : (acc.status === "waiting_human" ? "等待人工终审" : "进行中")));
+  var statusTxt = acc.done ? "全部通过" : (acc.tampered ? "⚠ 验收脚本被篡改" : (acc.governance ? "⚠ 治理门禁拦截" : (acc.pause ? "已暂停（需人工介入）" : (acc.status === "waiting_human" ? "等待人工终审" : (acc.status === "governance_blocked" ? "治理门禁拦截中" : "进行中")))));
   if (acc.scopeInvalidated) statusTxt += " · 范围变更" + acc.scopeInvalidated + "次";
   if (acc.lastPassCommit) statusTxt += ' · 绑定 commit <span style="color:var(--ok)">' + esc(acc.lastPassCommit.slice(0,7)) + '</span>';
   var html = '<div style="padding:14px 14px 6px;font-size:12px;color:var(--dim);letter-spacing:1px">验收流水线 · ' + statusTxt + '</div>';
@@ -2031,6 +2032,18 @@ function renderAccView(){
       '<br>预期: <code>' + acc.tampered.expected + '</code> 实际: <code>' + acc.tampered.actual + '</code>' +
       '<br>验收已锁定。如确认为你本人修改，点确认解锁。' +
       '<button class="abtn" id="accunlock" style="margin-top:6px">确认为本人修改，解锁</button></div>';
+  }
+  if (acc.governance && acc.governance.failures) {
+    html += '<div style="margin:6px 14px;padding:10px 12px;background:rgba(215,186,99,.08);border:1px solid var(--wn);border-radius:8px;font-size:11.5px;color:var(--wn)">';
+    html += '⚠ 治理门禁拦截（' + fmtRel(acc.governance.checked || Date.now()) + '）：';
+    for (var gf = 0; gf < acc.governance.failures.length; gf++) {
+      var f = acc.governance.failures[gf];
+      html += '<div style="margin-top:4px">▸ <b>' + esc(f.gate) + '</b>: ' + esc(f.detail);
+      if (f.items && f.items.length) html += '<div style="color:var(--dim);margin-left:12px;font-size:10.5px">' + f.items.slice(0,5).map(function(x){ return "· " + esc(x); }).join("<br>") + (f.items.length > 5 ? "<br>· ..." : "") + '</div>';
+      html += '</div>';
+    }
+    html += '<div style="color:var(--dim);font-size:10px;margin-top:6px">已自动通知 agent 补齐。补齐后自动放行。</div>';
+    html += '</div>';
   }
   if (acc.lastPassCommit) {
     html += '<div style="margin:4px 14px;padding:8px 10px;background:rgba(78,201,164,.08);border:1px solid var(--ok);border-radius:6px;font-size:11px;color:var(--dim)">证据绑定: 通过时 HEAD = <code style="color:var(--ok)">' + esc(acc.lastPassCommit.slice(0,7)) + '</code>。代码变更后此证据自动作废并重跑验收。</div>';

@@ -487,6 +487,18 @@ server.listen(PORT, HOST, () => {
   }
 });
 
+// ===== opencode adapter =====
+const gov = require("./lib/governance");
+
+// Check compatibility on startup
+gov.checkCompatibility().then(comp => {
+  if (!comp.ok) {
+    console.warn("[compat] " + comp.message);
+  } else {
+    console.log("[compat] " + comp.message);
+  }
+}).catch(() => {});
+
 const ACC_BACKEND = process.env.ACC_BACKEND || "http://127.0.0.1:4096";
 setInterval(async () => {
   const { exec } = require("child_process");
@@ -534,7 +546,32 @@ setInterval(async () => {
     const ri = acc.cur || 0;
     if (ri >= rounds.length) { acc.done = 1; saveTasks(); continue; }
     const r = rounds[ri];
-    if (r.mode === "human") { acc.status = "waiting_human"; saveTasks(); continue; }
+    if (r.mode === "human") {
+      // === Governance gates before human review ===
+      const gates = await gov.runGovernanceGates(t, ROOTS[0]);
+      if (!gates.pass) {
+        const details = gates.failures.map(f => `[${f.gate}] ${f.detail}`).join("; ");
+        acc.status = "governance_blocked";
+        acc.governance = { failures: gates.failures, checked: Date.now() };
+        saveTasks();
+        console.log("[governance] task " + id + " blocked: " + details);
+        // Send feedback to agent if it has pending todos
+        const todoFail = gates.failures.find(f => f.gate === "todo_convergence");
+        if (todoFail && t.sessionID) {
+          await gov.sendFeedback(t.sessionID,
+            "（治理门禁）你的 todo 清单还有 " + todoFail.detail + "。请先完成或显式取消未完成的步骤，然后才能进入验收。\n未完成项：\n" + todoFail.items.map(x => "- " + x).join("\n"));
+        }
+        const treeFail = gates.failures.find(f => f.gate === "clean_tree");
+        if (treeFail && t.sessionID) {
+          await gov.sendFeedback(t.sessionID,
+            "（治理门禁）工作区有 " + treeFail.detail + " 未提交。请 git commit 后再宣告完成。\n变更文件：\n" + treeFail.items.join("\n"));
+        }
+        continue;
+      }
+      acc.status = "waiting_human";
+      saveTasks();
+      continue;
+    }
     if (!r.cmd) { acc.cur = ri + 1; saveTasks(); continue; }
 
     // === Anti-tamper: verify script hash ===
@@ -562,7 +599,28 @@ setInterval(async () => {
         acc.cur = ri + 1;
         acc.attempts = 0;
         acc.lastPassCommit = gitHead;
-        if (acc.cur >= rounds.length) acc.done = 1;
+        if (acc.cur >= rounds.length) {
+          // Final governance check before done
+          const gates = await gov.runGovernanceGates(t, ROOTS[0]);
+          if (!gates.pass) {
+            acc.done = 0;
+            acc.cur = Math.max(0, ri);
+            acc.governance = { failures: gates.failures, checked: Date.now() };
+            const todoFail = gates.failures.find(f => f.gate === "todo_convergence");
+            if (todoFail && t.sessionID) {
+              await gov.sendFeedback(t.sessionID,
+                "（治理门禁·最终检查）todo 有 " + todoFail.detail + " 未完成，不能标记为完成。\n未完成项：\n" + todoFail.items.map(x => "- " + x).join("\n"));
+            }
+            const treeFail = gates.failures.find(f => f.gate === "clean_tree");
+            if (treeFail && t.sessionID) {
+              await gov.sendFeedback(t.sessionID,
+                "（治理门禁·最终检查）工作区不干净： " + treeFail.detail + "。请先 commit。\n变更文件：\n" + treeFail.items.join("\n"));
+            }
+            acc.nextAt = Date.now() + 60000; // retry in 1 minute
+          } else {
+            acc.done = 1;
+          }
+        }
       } else {
         acc.attempts = (acc.attempts||0) + 1;
         acc.history.push({ r: ri, pass: 0, out: String(out || (e && e.message) || "").slice(0,300), t: Date.now() });
