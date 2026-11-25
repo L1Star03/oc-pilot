@@ -10,3 +10,5 @@ ohos/work.p12
 ohos/entry/build/
 ohos/oh_modules/
 ohos/entry/oh_modules/
+
+!demo/tasks.json

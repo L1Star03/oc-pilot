@@ -1,0 +1,248 @@
+{
+  "demo1": {
+    "id": "demo1",
+    "title": "示例：给博客加暗色模式",
+    "desc": "支持跟随系统 + 手动切换，需覆盖文章页/列表页/代码块",
+    "stage": "review",
+    "sessionID": null,
+    "mode": "single",
+    "workers": [],
+    "merged": false,
+    "created": 1794970000000,
+    "updated": 1795434449621
+  },
+  "demo2": {
+    "id": "demo2",
+    "title": "示例：登录页表单校验与错误提示",
+    "desc": "前端校验 + 后端双层校验，错误信息友好化",
+    "stage": "review",
+    "sessionID": null,
+    "mode": "multi",
+    "workers": [
+      {
+        "sessionID": "ses_demo_w1",
+        "role": "表单实现"
+      },
+      {
+        "sessionID": "ses_demo_w2",
+        "role": "边界测试"
+      },
+      {
+        "sessionID": "ses_demo_w3",
+        "role": "可访问性审查"
+      }
+    ],
+    "merged": true,
+    "wn": 3,
+    "acc": {
+      "cur": 3,
+      "rounds": [
+        {
+          "name": "构建通过",
+          "cmd": "exit 0",
+          "intervalMin": 2,
+          "maxRetry": 3
+        },
+        {
+          "name": "单元测试",
+          "cmd": "exit 0",
+          "intervalMin": 3,
+          "maxRetry": 3
+        },
+        {
+          "name": "性能达标",
+          "cmd": "exit 0",
+          "intervalMin": 3,
+          "maxRetry": 2
+        },
+        {
+          "mode": "human",
+          "name": "人工终审"
+        }
+      ],
+      "history": [
+        {
+          "r": 0,
+          "pass": 1,
+          "out": "PASS: build ok, 0 errors",
+          "t": 1794970300000
+        },
+        {
+          "r": 1,
+          "pass": 1,
+          "out": "",
+          "t": 1795433309601
+        },
+        {
+          "r": 2,
+          "pass": 1,
+          "out": "",
+          "t": 1795433339237
+        }
+      ],
+      "attempts": 0,
+      "status": "waiting_human"
+    },
+    "created": 1794969000000,
+    "updated": 1795434449622,
+    "mergeSid": null
+  },
+  "demo3": {
+    "id": "demo3",
+    "title": "示例：为 REST API 补 OpenAPI 文档",
+    "desc": "生成 openapi.yaml 并接入 /docs 页面",
+    "stage": "plan",
+    "sessionID": null,
+    "mode": "single",
+    "workers": [],
+    "merged": false,
+    "created": 1794968000000,
+    "updated": 1794969800000
+  },
+  "demo4": {
+    "id": "demo4",
+    "title": "示例：商品列表页图片懒加载",
+    "desc": "IntersectionObserver + 占位骨架屏",
+    "stage": "review",
+    "sessionID": null,
+    "mode": "single",
+    "workers": [],
+    "merged": false,
+    "acc": {
+      "rounds": [
+        {
+          "name": "构建通过",
+          "cmd": "exit 0"
+        },
+        {
+          "name": "人工终审",
+          "mode": "human"
+        }
+      ],
+      "cur": 1,
+      "history": [
+        {
+          "r": 0,
+          "pass": 1,
+          "out": "PASS: build ok",
+          "t": 1794970200000
+        }
+      ],
+      "status": "waiting_human"
+    },
+    "created": 1794967000000,
+    "updated": 1794970600000
+  },
+  "demo5": {
+    "id": "demo5",
+    "title": "示例：清理无用的 CSS 变量",
+    "desc": "扫描未引用变量并移除，注意保留主题变量",
+    "stage": "todo",
+    "sessionID": null,
+    "mode": "single",
+    "workers": [],
+    "merged": false,
+    "created": 1794966000000,
+    "updated": 1794969000000
+  },
+  "demo6": {
+    "id": "demo6",
+    "title": "示例：迁移到 TypeScript 严格模式",
+    "desc": "分模块渐进开启 strict，修复类型错误",
+    "stage": "todo",
+    "sessionID": null,
+    "mode": "single",
+    "workers": [],
+    "merged": false,
+    "created": 1794965000000,
+    "updated": 1794968800000
+  },
+  "demo7": {
+    "id": "demo7",
+    "title": "示例：CI 增加构建缓存",
+    "desc": "缓存依赖与产物，构建时间目标减半",
+    "stage": "done",
+    "sessionID": null,
+    "mode": "single",
+    "workers": [],
+    "merged": false,
+    "created": 1794964000000,
+    "updated": 1794968000000
+  },
+  "demo_flow": {
+    "id": "demo_flow",
+    "title": "示例：电商单体架构微服务化重构",
+    "desc": "订单/支付/库存拆分微服务，网关统一鉴权，全链路压测达标后灰度上线",
+    "stage": "review",
+    "sessionID": null,
+    "mode": "multi",
+    "workers": [
+      {
+        "sessionID": "ses_demo_f1",
+        "role": "架构设计"
+      },
+      {
+        "sessionID": "ses_demo_f2",
+        "role": "订单服务"
+      },
+      {
+        "sessionID": "ses_demo_f3",
+        "role": "支付网关"
+      },
+      {
+        "sessionID": "ses_demo_f4",
+        "role": "全链路压测"
+      }
+    ],
+    "merged": true,
+    "wn": 4,
+    "acc": {
+      "cur": 4,
+      "rounds": [
+        {
+          "name": "构建通过",
+          "intervalMin": 2,
+          "maxRetry": 3
+        },
+        {
+          "name": "单元测试",
+          "intervalMin": 3,
+          "maxRetry": 3
+        },
+        {
+          "name": "契约测试",
+          "intervalMin": 3,
+          "maxRetry": 2
+        },
+        {
+          "name": "压测达标",
+          "intervalMin": 5,
+          "maxRetry": 2
+        },
+        {
+          "mode": "human",
+          "name": "人工终审"
+        }
+      ],
+      "history": [
+        {
+          "r": 0,
+          "pass": 1,
+          "out": "PASS: build ok, 0 errors (12s)",
+          "t": 1794970300000
+        },
+        {
+          "r": 1,
+          "pass": 1,
+          "out": "PASS: 214 tests, 0 failed",
+          "t": 1794970600000
+        }
+      ],
+      "attempts": 0,
+      "status": "waiting_human"
+    },
+    "created": 1794969000000,
+    "updated": 1795527613436,
+    "mergeSid": null
+  }
+}
