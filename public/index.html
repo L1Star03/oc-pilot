@@ -3254,6 +3254,7 @@ async function renderStats(){
   el.innerHTML = '<div class="empty">加载统计…</div>';
   var sessions = [];
   try { sessions = (await api("/session")) || []; } catch(e){ el.innerHTML = '<div class="empty">无法获取会话数据</div>'; return; }
+  if (!Array.isArray(sessions)) sessions = [];
   var projs = {};
   for (var i=0;i<sessions.length;i++){
     var p = (sessions[i].directory || "").split(/[\\/]/).pop() || "—";
