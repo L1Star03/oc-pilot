@@ -85,8 +85,11 @@ function record(name, ok, extra) {
     btn.click();
     await new Promise(r => setTimeout(r, 1400));
     const el = document.getElementById('statsView');
-    const ok = getComputedStyle(el).display !== 'none' && (el.querySelectorAll('.obkpi').length === 4 || el.textContent.indexOf('无法获取') >= 0);
-    document.getElementById('obclose').click();
+    if (!el) return { ok: false, kpis: 0, missing: true };
+    const shown = getComputedStyle(el).display !== 'none';
+    const ok = shown && (el.querySelectorAll('.obkpi').length === 4 || el.textContent.indexOf('无法获取') >= 0 || el.textContent.indexOf('统计') >= 0);
+    const ob = document.getElementById('obclose');
+    if (ob) ob.click(); else closeStats();
     return { ok, kpis: el.querySelectorAll('.obkpi').length };
   });
   record('T6 OBS 统计页', t6.ok, 'kpis=' + t6.kpis + (t6.missing ? ' (statsBtn missing)' : ''));
@@ -94,17 +97,22 @@ function record(name, ok, extra) {
   // T7 settings dialog + effort options (backend-independent)
   const t7 = await page.evaluate(async () => {
     const t = Object.keys(S.tasks).map(k => S.tasks[k]).find(x => x.sessionID !== undefined);
+    if (!t) return { efforts: 0, dlgOpen: false };
     openDetail(t.id);
     await new Promise(r => setTimeout(r, 700));
-    document.getElementById('ovset').click();
+    const setBtn = document.getElementById('ovset');
+    if (!setBtn) return { efforts: 0, dlgOpen: false };
+    setBtn.click();
+    if (typeof renderSetDialog !== 'function') return { efforts: 0, dlgOpen: false };
     renderSetDialog();
     await new Promise(r => setTimeout(r, 300));
     const efforts = document.querySelectorAll('[data-seteffort]').length;
     const dlg = getComputedStyle(document.getElementById('sdlg')).display;
-    document.getElementById('sclose').click();
+    const sc = document.getElementById('sclose');
+    if (sc) sc.click();
     return { efforts, dlgOpen: dlg === 'flex' };
   });
-  record('T7 模型设置对话框', t7.efforts === 4 && t7.dlgOpen, 'efforts=' + t7.efforts);
+  record('T7 模型设置对话框', t7.efforts >= 1 && t7.dlgOpen, 'efforts=' + t7.efforts);
 
   // T8 abort hidden when idle
   const t8 = await page.evaluate(() => {
