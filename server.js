@@ -2,17 +2,35 @@ const os = require("os");
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const UP_HOST = "127.0.0.1";
 const UP_PORT = parseInt(process.env.OPENCODE_PORT || "4096", 10);
 const PORT = parseInt(process.env.PORT || "4097", 10);
 const HOST = process.env.PILOT_HOST || "127.0.0.1";
-const TOKEN = process.env.PILOT_TOKEN || "";
 const IS_WIN = process.platform === "win32";
+const IS_LOOPBACK = HOST === "127.0.0.1" || HOST === "localhost" || HOST === "::1";
+
+// Security: refuse non-loopback binding without token
+if (!IS_LOOPBACK && !process.env.PILOT_TOKEN) {
+  console.error("[FATAL] Refusing to bind " + HOST + " without PILOT_TOKEN.");
+  console.error("  This server can read/write files and execute commands.");
+  console.error("  Set PILOT_TOKEN=<secret> to bind non-loopback addresses.");
+  process.exit(1);
+}
+
+// Security: auto-generate token for loopback if not set
+let TOKEN = process.env.PILOT_TOKEN || "";
+if (!TOKEN && IS_LOOPBACK && !process.env.PILOT_DEMO) {
+  TOKEN = crypto.randomBytes(8).toString("hex");
+  console.log("[auto-token] generated " + TOKEN + " (set PILOT_TOKEN to override)");
+}
+
 const PUB = path.join(__dirname, "public");
 const ROOTS = [process.env.PILOT_FS_ROOT || os.homedir()];
 const TASKS_FILE = process.env.PILOT_TASKS_FILE || path.join(__dirname, "tasks.json");
 const BACKENDS_FILE = path.join(__dirname, "backends.json");
+const IS_DEMO = !!process.env.PILOT_DEMO;
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -57,10 +75,25 @@ function deny(res) {
   res.writeHead(401, { "Content-Type": "application/json" });
   res.end(JSON.stringify({ error: "unauthorized" }));
 }
+function originOK(req) {
+  const host = req.headers["host"] || "";
+  const origin = req.headers["origin"] || "";
+  const referer = req.headers["referer"] || "";
+  if (host && !host.startsWith("127.0.0.1") && !host.startsWith("localhost") && !host.startsWith("::1") && host !== (req.socket.remoteAddress || "")) {
+    return false;
+  }
+  if (origin && origin !== "null") {
+    try {
+      const o = new URL(origin);
+      if (o.hostname !== "127.0.0.1" && o.hostname !== "localhost" && o.hostname !== "::1") return false;
+    } catch (e) { return false; }
+  }
+  return true;
+}
 
 function json(res, code, obj) {
   const body = JSON.stringify(obj);
-  res.writeHead(code, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" });
+  res.writeHead(code, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
   res.end(body);
 }
 
@@ -226,7 +259,14 @@ function handleFs(req, res, url) {
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, "http://local");
 
-  const needsAuth = url.pathname.startsWith("/fs/") || url.pathname.startsWith("/api/") || url.pathname.startsWith("/tasks") || url.pathname.startsWith("/acc/") || url.pathname === "/backends" || url.pathname === "/ocinstances";
+  // CSRF/DNS-rebinding protection: validate Host header
+  if (!originOK(req)) {
+    res.writeHead(403, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "forbidden: cross-origin request blocked" }));
+    return;
+  }
+
+  const needsAuth = url.pathname.startsWith("/fs/") || url.pathname.startsWith("/api/") || url.pathname.startsWith("/tasks") || url.pathname.startsWith("/acc/") || url.pathname === "/backends" || url.pathname === "/ocinstances" || url.pathname === "/quota";
   if (needsAuth && !tokenOK(req, url)) { deny(res); return; }
 
   if (url.pathname.startsWith("/fs/")) { handleFs(req, res, url); return; }
@@ -268,7 +308,7 @@ const server = http.createServer((req, res) => {
       const cwd = underRoot(o.dir || ROOTS[0]) || ROOTS[0];
       if (!cmd || !cwd) { json(res, 400, { error: "bad acc run" }); return; }
       const { exec } = require("child_process");
-      exec(cmd, { cwd, timeout: 150000, maxBuffer: 4*1024*1024, encoding: "utf8", shell: IS_WIN ? "powershell" : undefined }, (e, out) => {
+      exec(cmd, { cwd, timeout: 150000, maxBuffer: 4*1024*1024, encoding: "utf8", shell: IS_WIN ? "powershell" : "/bin/bash" }, (e, out) => {
         json(res, 200, { pass: !e, code: e ? (e.code || 1) : 0, output: String(out || (e ? e.message : "")).slice(0, 4000) });
       });
     });
@@ -327,10 +367,9 @@ const server = http.createServer((req, res) => {
       for (const [k, v] of Object.entries(upRes.headers)) {
         const lk = k.toLowerCase();
         if (["transfer-encoding", "connection", "content-length", "content-encoding"].includes(lk)) continue;
-        h[k] = v;
-      }
-      h["access-control-allow-origin"] = "*";
-      res.writeHead(upRes.statusCode || 502, h);
+      h[k] = v;
+    }
+    res.writeHead(upRes.statusCode || 502, h);
       upRes.pipe(res);
     });
     upReq.on("error", (e) => {
@@ -351,11 +390,13 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  const loopback = HOST === "127.0.0.1" || HOST === "localhost" || HOST === "::1";
-  if (!loopback && !TOKEN) {
-    console.warn("[WARN] binding " + HOST + " without PILOT_TOKEN: ALL endpoints are unauthenticated and can run commands. Use only on a trusted network.");
+  console.log("oc-pilot on http://" + HOST + ":" + PORT);
+  console.log("  auth: " + (TOKEN ? "token (" + TOKEN.slice(0, 4) + "...)" : "none (loopback only)"));
+  console.log("  mode: " + (IS_DEMO ? "demo (no backend required)" : "live (opencode " + UP_HOST + ":" + UP_PORT + ")"));
+  if (!IS_DEMO && !TOKEN) {
+    console.log("  [WARN] no token set. Auto-generated for this session only.");
+    console.log("         Set PILOT_TOKEN env var for stable access.");
   }
-  console.log("oc-pilot board on http://" + HOST + ":" + PORT + " -> " + UP_HOST + ":" + UP_PORT + " (fs root: " + ROOTS[0] + ", auth: " + (TOKEN ? "token" : "none") + ")");
 });
 
 const ACC_BACKEND = process.env.ACC_BACKEND || "http://127.0.0.1:4096";
@@ -410,7 +451,7 @@ setInterval(async () => {
     const r = rounds[ri];
     if (r.mode === "human") { acc.status = "waiting_human"; saveTasks(); continue; }
     if (!r.cmd) { acc.cur = ri + 1; saveTasks(); continue; }
-    exec(String(r.cmd), { cwd: ROOTS[0], timeout: 150000, maxBuffer: 4*1024*1024, encoding: "utf8", shell: "powershell" }, async (e, out) => {
+    exec(String(r.cmd), { cwd: ROOTS[0], timeout: 150000, maxBuffer: 4*1024*1024, encoding: "utf8", shell: IS_WIN ? "powershell" : "/bin/bash" }, async (e, out) => {
       acc.history = acc.history || [];
       const pass = !e;
       if (pass) {
