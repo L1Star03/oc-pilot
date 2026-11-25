@@ -172,8 +172,32 @@ main{flex:1;overflow:hidden;display:flex}
 @keyframes slideR{from{transform:translateX(28px);opacity:0}to{transform:none;opacity:1}}
 #ovh{display:flex;align-items:center;gap:8px;padding:8px 12px;padding-top:calc(8px + env(safe-area-inset-top));background:var(--bar-bg);border-bottom:1px solid var(--ln)}
 #ovtitle{flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--cy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#ovbody{flex:1;overflow-y:auto;min-height:0}
+#ovbody{flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column}
 #tabs{display:flex;background:var(--bar-bg);border-bottom:1px solid var(--ln);position:sticky;top:0;z-index:5}
+#pipelineBar{display:none;flex:0 0 auto;align-items:center;gap:6px;padding:4px 10px;background:var(--bar-bg);border-bottom:1px solid var(--ln);overflow-x:auto;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:40px;z-index:4}
+#pipelineBar:hover{filter:brightness(1.1)}
+.plstage{display:flex;align-items:center;gap:3px;font-size:10.5px;letter-spacing:1px;color:var(--mut);flex:0 0 auto}
+.plstage.cur{color:var(--cy);font-weight:700}
+.plstage.pass{color:var(--ok)}
+.plstage.done{color:var(--ok)}
+.plsep{color:var(--ln2);font-size:10px;flex:0 0 auto}
+.pldots{font-size:11px;letter-spacing:2px;flex:0 0 auto;color:var(--dim)}
+.plcommit{font-size:9.5px;color:var(--ok);font-family:Consolas,monospace;flex:0 0 auto}
+.plalert{font-size:9.5px;color:var(--er);flex:0 0 auto;font-weight:700}
+.plgov{font-size:9.5px;color:var(--wn);flex:0 0 auto;font-weight:700}
+.plflex{flex:1}
+#pipelineBar:hover{filter:brightness(1.1)}
+.plstage{display:flex;align-items:center;gap:3px;font-size:10.5px;letter-spacing:1px;color:var(--mut);flex:0 0 auto}
+.plstage.cur{color:var(--cy);font-weight:700}
+.plstage.pass{color:var(--ok)}
+.plstage.done{color:var(--ok)}
+.plsep{color:var(--ln2);font-size:10px;flex:0 0 auto}
+.pldots{font-size:11px;letter-spacing:2px;flex:0 0 auto;color:var(--dim)}
+.plcommit{font-size:9.5px;color:var(--ok);font-family:Consolas,monospace;flex:0 0 auto}
+.plalert{font-size:9.5px;color:var(--er);flex:0 0 auto;font-weight:700}
+.plgov{font-size:9.5px;color:var(--wn);flex:0 0 auto;font-weight:700}
+.plflex{flex:1}
+#dview{flex:1;overflow-y:auto;min-height:0}
 #tabs button{flex:1;padding:10px;color:var(--mut);border-bottom:2px solid transparent;letter-spacing:2px;font-size:12.5px}
 #tabs button.on{color:var(--cy);border-bottom-color:var(--cyb)}
 #ovfoot{display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px;padding-bottom:calc(8px + env(safe-area-inset-bottom));background:var(--bar-bg);border-top:1px solid var(--ln)}
@@ -1935,7 +1959,8 @@ async function openDetail(id){
     '<button data-t="graph">◈ 流程</button>' +
     ((S.curTask.workers || []).length ? '<button data-t="agents">◈ 分工</button>' : "") +
     (S.curTask.acc ? '<button data-t="acc">✓ 验收</button>' : "") +
-    '<button data-t="todo">待办</button><button data-t="diff">改动</button></div><div id="dview"></div>';
+    '<button data-t="todo">待办</button><button data-t="diff">改动</button></div>' +
+    '<div id="pipelineBar"></div><div id="dview"></div>';
   $("ovbody").innerHTML = tabsHtml;
   renderSidebar();
   await refreshDetail(true);
@@ -2385,8 +2410,55 @@ function hasTextSelection(){
   return dv.contains(sel.anchorNode) || dv.contains(sel.focusNode);
 }
 
+var PIPE_STAGES = [
+  { key: "todo", name: "TODO", icon: "▣" },
+  { key: "plan", name: "PLAN", icon: " ◙" },
+  { key: "exec", name: "EXEC", icon: "▶" },
+  { key: "review", name: "REVIEW", icon: "◎" },
+  { key: "done", name: "DONE", icon: "✓" }
+];
+
+function renderPipelineBar(){
+  var t = S.curTask;
+  var el = $("pipelineBar");
+  if (!el || !t) { if (el) el.style.display = "none"; return; }
+  var acc = t.acc;
+  var html = "";
+  // Stage flow
+  for (var i = 0; i < PIPE_STAGES.length; i++) {
+    var ps = PIPE_STAGES[i];
+    var cls = "";
+    if (t.stage === ps.key) cls = "cur";
+    else if (PIPE_STAGES.findIndex(function(x){ return x.key === t.stage; }) > i) cls = "pass";
+    if (t.stage === "done") cls = "done";
+    html += '<span class="plstage ' + cls + '">' + ps.icon + ' ' + ps.name + '</span>';
+    if (i < PIPE_STAGES.length - 1) html += '<span class="plsep">─</span>';
+  }
+  // Acceptance progress
+  if (acc && acc.rounds && acc.rounds.length) {
+    html += '<span class="plflex"></span>';
+    var dots = "";
+    for (var j = 0; j < acc.rounds.length; j++) {
+      dots += (j < (acc.cur||0)) ? "✓" : (j === (acc.cur||0) ? (acc.tampered || acc.governance ? "✗" : "●") : "○");
+    }
+    html += '<span class="pldots">' + dots + '</span>';
+    if (acc.done) html += '<span class="plstage pass">☑</span>';
+    if (acc.lastPassCommit) html += '<span class="plcommit">@' + acc.lastPassCommit.slice(0,7) + '</span>';
+    if (acc.tampered) html += '<span class="plalert">⚠篡改</span>';
+    if (acc.governance && acc.governance.failures) html += '<span class="plgov">⚠治理</span>';
+    if (acc.scopeInvalidated) html += '<span class="plgov">↺范围' + acc.scopeInvalidated + '</span>';
+  }
+  el.innerHTML = html;
+  el.style.display = "flex";
+  el.onclick = function() {
+    var accBtn = document.querySelector('#tabs [data-t="acc"]');
+    if (accBtn) accBtn.click();
+  };
+}
+
 async function refreshDetail(full){
-  if (!S.curTask) return;
+  if (!S.curTask) { var pel = $("pipelineBar"); if (pel) pel.style.display = "none"; return; }
+  renderPipelineBar();
   var t = S.curTask;
   if (S.curTab !== refreshDetail._lastTab) {
     refreshDetail._sig = "";
