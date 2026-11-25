@@ -9,7 +9,7 @@ function record(name, ok, extra) {
   const browser = await puppeteer.launch({
     executablePath: process.env.EDGE_PATH || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
     headless: 'new',
-    args: ['--disable-gpu', '--no-first-run']
+    args: ['--disable-gpu', '--no-first-run', '--no-proxy-server', '--proxy-bypass-list=<-loopback>']
   });
   const page = await browser.newPage();
   const errors = [];
