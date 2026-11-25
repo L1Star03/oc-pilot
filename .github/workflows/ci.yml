@@ -29,6 +29,7 @@ jobs:
           $env:PILOT_TASKS_FILE = "$PWD\demo\tasks.json"
           $env:PORT = "4098"
           $env:PILOT_HOST = "127.0.0.1"
+          $env:PILOT_DEMO = "1"
           Start-Process node -ArgumentList "server.js" -RedirectStandardOutput pilot.out.log -RedirectStandardError pilot.err.log -NoNewWindow
           Start-Sleep -Seconds 6
           $r = Invoke-WebRequest -Uri "http://127.0.0.1:4098/tasks" -UseBasicParsing -TimeoutSec 10
