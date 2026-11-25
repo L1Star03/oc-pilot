@@ -12,3 +12,5 @@ ohos/oh_modules/
 ohos/entry/oh_modules/
 
 !demo/tasks.json
+
+.vault.json

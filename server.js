@@ -30,7 +30,65 @@ const PUB = path.join(__dirname, "public");
 const ROOTS = [process.env.PILOT_FS_ROOT || os.homedir()];
 const TASKS_FILE = process.env.PILOT_TASKS_FILE || path.join(__dirname, "tasks.json");
 const BACKENDS_FILE = path.join(__dirname, "backends.json");
+const VAULT_FILE = path.join(__dirname, ".vault.json");
 const IS_DEMO = !!process.env.PILOT_DEMO;
+
+// ===== Acceptance Integrity Vault =====
+// Scripts hashes stored OUTSIDE tasks.json so agents can't tamper via task PATCH
+let vault = {};
+try { vault = JSON.parse(fs.readFileSync(VAULT_FILE, "utf8")); } catch (e) { vault = {}; }
+function saveVault() {
+  try { fs.writeFileSync(VAULT_FILE, JSON.stringify(vault, null, 2)); } catch (e) {}
+}
+function hashCmd(cmd) {
+  return crypto.createHash("sha256").update(String(cmd)).digest("hex").slice(0, 16);
+}
+function registerRoundHash(taskId, roundIdx, cmd) {
+  if (!vault[taskId]) vault[taskId] = {};
+  vault[taskId][roundIdx] = hashCmd(cmd);
+  saveVault();
+}
+function verifyRoundHash(taskId, roundIdx, cmd) {
+  const stored = vault[taskId] && vault[taskId][roundIdx];
+  if (!stored) return true; // no hash stored = first run or legacy
+  return stored === hashCmd(cmd);
+}
+
+// ===== Default L1 Acceptance Detection =====
+const PROJECT_DETECTORS = [
+  { file: "package.json", rounds: [
+    { name: "build", cmd: "npm run build --if-present", intervalMin: 2, maxRetry: 3 },
+    { name: "test", cmd: "npm test --if-present", intervalMin: 3, maxRetry: 3 },
+    { name: "lint", cmd: "npm run lint --if-present", intervalMin: 3, maxRetry: 2 }
+  ]},
+  { file: "build.gradle", rounds: [
+    { name: "build", cmd: "gradle build --offline -q", intervalMin: 3, maxRetry: 3 }
+  ]},
+  { file: "CMakeLists.txt", rounds: [
+    { name: "build", cmd: "cmake --build build --target all -j4 2>&1 | tail -5", intervalMin: 3, maxRetry: 3 }
+  ]},
+  { file: "Makefile", rounds: [
+    { name: "build", cmd: "make -j4 2>&1 | tail -5", intervalMin: 3, maxRetry: 3 },
+    { name: "test", cmd: "make test 2>&1 | tail -10", intervalMin: 3, maxRetry: 3 }
+  ]}
+];
+function detectDefaultAcceptance(dir) {
+  for (const d of PROJECT_DETECTORS) {
+    if (fs.existsSync(path.join(dir, d.file))) {
+      return { rounds: d.rounds.concat([{ mode: "human", name: "human review" }]), auto: true };
+    }
+  }
+  return null;
+}
+
+// ===== Git HEAD tracking for evidence-commit binding =====
+function getGitHead(dir) {
+  return new Promise((resolve) => {
+    require("child_process").execFile("git", ["-C", dir, "rev-parse", "HEAD"], { timeout: 5000 }, (e, out) => {
+      resolve(e ? null : out.trim());
+    });
+  });
+}
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -120,7 +178,20 @@ function handleTasks(req, res, url) {
   if (req.method === "POST" && url.pathname === "/tasks") {
     readBody(req, function(o){
       const id = "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      tasks[id] = { id: id, title: String(o.title || "新任务").slice(0, 200), desc: String(o.desc || "").slice(0, 2000), stage: "todo", sessionID: null, mode: o.mode === "multi" ? "multi" : "single", workers: [], merged: false, wn: Math.max(2, Math.min(4, Math.round(o.wn) || 3)), created: Date.now(), updated: Date.now() };
+      let acc = o.acc || null;
+      // If no acceptance plan provided, auto-detect from project
+      if (!acc && o.sessionID) {
+        const sessDir = path.join(ROOTS[0], "project");
+        acc = detectDefaultAcceptance(ROOTS[0]);
+        if (acc) acc.auto = true;
+      }
+      tasks[id] = { id: id, title: String(o.title || "新任务").slice(0, 200), desc: String(o.desc || "").slice(0, 2000), stage: "todo", sessionID: null, mode: o.mode === "multi" ? "multi" : "single", workers: [], merged: false, wn: Math.max(2, Math.min(4, Math.round(o.wn) || 3)), acc: acc, created: Date.now(), updated: Date.now() };
+      // Register acceptance script hashes in vault
+      if (acc && acc.rounds) {
+        for (let ri = 0; ri < acc.rounds.length; ri++) {
+          if (acc.rounds[ri].cmd) registerRoundHash(id, ri, acc.rounds[ri].cmd);
+        }
+      }
       saveTasks();
       json(res, 200, tasks[id]);
     });
@@ -131,6 +202,7 @@ function handleTasks(req, res, url) {
     if (!t) { json(res, 404, { error: "no task" }); return; }
     readBody(req, function(o){
       const STAGES = ["todo", "plan", "exec", "review", "done"];
+      const scopeChanged = (typeof o.title === "string" && o.title !== t.title) || (typeof o.desc === "string" && o.desc !== t.desc);
       if (o.stage && STAGES.indexOf(o.stage) >= 0) t.stage = o.stage;
       if (typeof o.title === "string") t.title = o.title.slice(0, 200);
       if (typeof o.desc === "string") t.desc = o.desc.slice(0, 2000);
@@ -141,7 +213,23 @@ function handleTasks(req, res, url) {
       if (typeof o.mergeSid === "string") t.mergeSid = o.mergeSid;
       if (typeof o.wn === "number") t.wn = Math.max(2, Math.min(4, Math.round(o.wn)));
       if (typeof o.gen === "number") t.gen = o.gen;
-      if (o.acc && typeof o.acc === "object") t.acc = o.acc;
+      if (o.acc && typeof o.acc === "object") {
+        t.acc = o.acc;
+        // Re-register hashes when acceptance plan is explicitly updated
+        if (t.acc.rounds) {
+          for (let ri = 0; ri < t.acc.rounds.length; ri++) {
+            if (t.acc.rounds[ri].cmd) registerRoundHash(parts[1], ri, t.acc.rounds[ri].cmd);
+          }
+        }
+      }
+      // Scope change invalidates acceptance progress
+      if (scopeChanged && t.acc && !t.acc.done) {
+        t.acc.cur = 0;
+        t.acc.attempts = 0;
+        t.acc.history = (t.acc.history || []).concat([{ r: -1, pass: -1, out: "scope changed: acceptance reset", t: Date.now() }]);
+        t.acc.status = "";
+        t.acc.scopeInvalidated = (t.acc.scopeInvalidated || 0) + 1;
+      }
       t.updated = Date.now();
       saveTasks();
       json(res, 200, t);
@@ -439,39 +527,55 @@ setInterval(async () => {
     if (!acc || acc.done || acc.pause) continue;
     if (t.stage !== "exec" && t.stage !== "review") continue;
     if (acc.status === "waiting_human") continue;
+    if (acc.tampered) continue; // blocked by tamper detection
     if (acc.nextAt && Date.now() < acc.nextAt) continue;
-    try {
-      const st = await fetch(ACC_BACKEND + "/session/status").then(r => r.json());
-      const busy = st && st[t.sessionID] && st[t.sessionID].type === "busy";
-      if (busy) continue;
-    } catch (e) { continue; }
+
     const rounds = acc.rounds || [];
     const ri = acc.cur || 0;
     if (ri >= rounds.length) { acc.done = 1; saveTasks(); continue; }
     const r = rounds[ri];
     if (r.mode === "human") { acc.status = "waiting_human"; saveTasks(); continue; }
     if (!r.cmd) { acc.cur = ri + 1; saveTasks(); continue; }
+
+    // === Anti-tamper: verify script hash ===
+    if (!verifyRoundHash(id, ri, r.cmd)) {
+      acc.tampered = { round: ri, detected: Date.now(), expected: vault[id][ri], actual: hashCmd(r.cmd) };
+      acc.status = "tampered";
+      saveTasks();
+      console.log("[tamper] task " + id + " round " + ri + " script hash mismatch");
+      continue;
+    }
+
+    try {
+      const st = await fetch(ACC_BACKEND + "/session/status").then(r => r.json());
+      const busy = st && st[t.sessionID] && st[t.sessionID].type === "busy";
+      if (busy) continue;
+    } catch (e) { continue; }
+
     exec(String(r.cmd), { cwd: ROOTS[0], timeout: 150000, maxBuffer: 4*1024*1024, encoding: "utf8", shell: IS_WIN ? "powershell" : "/bin/bash" }, async (e, out) => {
       acc.history = acc.history || [];
       const pass = !e;
       if (pass) {
-        acc.history.push({ r: ri, pass: 1, out: String(out||"").slice(0,200), t: Date.now() });
+        // === Evidence-commit binding: record git HEAD ===
+        const gitHead = await getGitHead(ROOTS[0]);
+        acc.history.push({ r: ri, pass: 1, out: String(out||"").slice(0,200), t: Date.now(), commit: gitHead });
         acc.cur = ri + 1;
         acc.attempts = 0;
+        acc.lastPassCommit = gitHead;
         if (acc.cur >= rounds.length) acc.done = 1;
       } else {
         acc.attempts = (acc.attempts||0) + 1;
         acc.history.push({ r: ri, pass: 0, out: String(out || (e && e.message) || "").slice(0,300), t: Date.now() });
-        const rname = r.name || ("检查" + (ri+1));
+        const rname = r.name || ("check" + (ri+1));
         const maxR = r.maxRetry || 3;
         let fb;
         if (acc.attempts >= maxR) {
-          fb = "（验收升级·第" + (ri+1) + "轮「" + rname + "」已连续 " + acc.attempts + " 次未过）\\n最近检查输出：\\n" + String(out || (e && e.message) || "无输出") + "\\n停止表面修补：请重新分析失败根因（打印中间量、做最小复现验证），必要时更换方案（reward 结构/超参/观测设计）。未达验收标准不得宣告完成，完成后等待自动复检。";
+          fb = "（验收升级·第" + (ri+1) + "轮「" + rname + "」已连续 " + acc.attempts + " 次未过）\n最近检查输出：\n" + String(out || (e && e.message) || "无输出") + "\n停止表面修补：请重新分析失败根因，必要时更换方案。未达验收标准不得宣告完成。";
           acc.attempts = 0;
           acc.escalated = (acc.escalated || 0) + 1;
           acc.nextAt = Date.now() + (r.intervalMin || 3) * 2 * 60000;
         } else {
-          fb = "（验收打回·第" + (ri+1) + "轮「" + rname + "」第" + acc.attempts + "/" + maxR + "次未过）\\n检查输出：\\n" + String(out || (e && e.message) || "无输出") + "\\n请针对性修复并重新完成任务后等待复检，未通过验收不得宣告完成。";
+          fb = "（验收打回·第" + (ri+1) + "轮「" + rname + "」第" + acc.attempts + "/" + maxR + "次未过）\n检查输出：\n" + String(out || (e && e.message) || "无输出") + "\n请针对性修复后等待复检。";
           acc.nextAt = Date.now() + (r.intervalMin || 3) * 60000;
         }
         try {
@@ -480,5 +584,23 @@ setInterval(async () => {
       }
       saveTasks();
     });
+  }
+
+  // === Evidence-commit invalidation: if HEAD changed after pass, reset progress ===
+  for (const id of Object.keys(tasks)) {
+    const t = tasks[id];
+    const acc = t.acc;
+    if (!acc || acc.done || !acc.lastPassCommit) continue;
+    if (t.stage !== "review") continue; // only check in review stage
+    const currentHead = await getGitHead(ROOTS[0]);
+    if (currentHead && currentHead !== acc.lastPassCommit) {
+      // Code changed after acceptance passed — invalidate
+      acc.cur = 0;
+      acc.history = (acc.history || []).concat([{ r: -1, pass: -1, out: "code changed after acceptance (commit " + acc.lastPassCommit.slice(0,7) + " → " + currentHead.slice(0,7) + "): evidence invalidated", t: Date.now() }]);
+      acc.lastPassCommit = null;
+      t.stage = "exec";
+      saveTasks();
+      console.log("[evidence] task " + id + " code changed after pass, resetting acceptance");
+    }
   }
 }, 30000).unref();

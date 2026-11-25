@@ -1095,10 +1095,18 @@ function cardHtml(t){
   if (t.acc) {
     if (t.acc.done) line += '<span class="stag ok">☑验收</span>';
     else {
-      var rd = "";
-      var rlist = t.acc.rounds || [];
-      for (var ri2=0; ri2<rlist.length; ri2++) rd += (ri2 < (t.acc.cur||0)) ? "✓" : (ri2 === (t.acc.cur||0) ? (t.acc.pause ? "✗" : "●") : "○");
-      line += '<span class="stag">R' + ((t.acc.cur||0)+1) + '/' + rlist.length + '</span><span class="stag accdot">' + rd + '</span>';
+    var acc = t.acc;
+    var rounds = t.acc.rounds || [];
+    var statusTxt = "";
+    if (acc.status === "tampered" || acc.tampered) statusTxt = "⚠脚本被篡改";
+    else if (acc.status === "waiting_human") statusTxt = "◉待终审";
+    else if (acc.done) statusTxt = "☑验收";
+    else statusTxt = "R" + ((acc.cur||0)+1) + "/" + rounds.length;
+    if (acc.scopeInvalidated) statusTxt += " ⚠范围变" + acc.scopeInvalidated;
+    if (acc.lastPassCommit) statusTxt += " @" + acc.lastPassCommit.slice(0,7);
+    var rd = "";
+    for (var ri2=0; ri2<rounds.length; ri2++) rd += (ri2 < (acc.cur||0)) ? "✓" : (ri2 === (acc.cur||0) ? (acc.tampered ? "✗" : "●") : "○");
+    line += '<span class="stag">' + statusTxt + '</span><span class="stag accdot">' + rd + '</span>';
     }
   }
   if (act === "run") {
@@ -2013,7 +2021,20 @@ function renderAccView(){
   var sig = t.id + ":" + JSON.stringify(acc);
   if (sig === renderAccView._sig) return;
   renderAccView._sig = sig;
-  var html = '<div style="padding:14px 14px 6px;font-size:12px;color:var(--dim);letter-spacing:1px">验收流水线 · ' + (acc.done ? "全部通过" : (acc.pause ? "已暂停（需人工介入）" : (acc.status === "waiting_human" ? "等待人工终审" : "进行中"))) + '</div>';
+  var statusTxt = acc.done ? "全部通过" : (acc.tampered ? "⚠ 验收脚本被篡改" : (acc.pause ? "已暂停（需人工介入）" : (acc.status === "waiting_human" ? "等待人工终审" : "进行中")));
+  if (acc.scopeInvalidated) statusTxt += " · 范围变更" + acc.scopeInvalidated + "次";
+  if (acc.lastPassCommit) statusTxt += ' · 绑定 commit <span style="color:var(--ok)">' + esc(acc.lastPassCommit.slice(0,7)) + '</span>';
+  var html = '<div style="padding:14px 14px 6px;font-size:12px;color:var(--dim);letter-spacing:1px">验收流水线 · ' + statusTxt + '</div>';
+  if (acc.tampered) {
+    html += '<div style="margin:6px 14px;padding:10px 12px;background:rgba(241,76,76,.1);border:1px solid var(--er);border-radius:8px;font-size:12px;color:var(--er)">' +
+      '⚠ 第' + (acc.tampered.round+1) + '轮验收脚本哈希与创建时不一致。' +
+      '<br>预期: <code>' + acc.tampered.expected + '</code> 实际: <code>' + acc.tampered.actual + '</code>' +
+      '<br>验收已锁定。如确认为你本人修改，点确认解锁。' +
+      '<button class="abtn" id="accunlock" style="margin-top:6px">确认为本人修改，解锁</button></div>';
+  }
+  if (acc.lastPassCommit) {
+    html += '<div style="margin:4px 14px;padding:8px 10px;background:rgba(78,201,164,.08);border:1px solid var(--ok);border-radius:6px;font-size:11px;color:var(--dim)">证据绑定: 通过时 HEAD = <code style="color:var(--ok)">' + esc(acc.lastPassCommit.slice(0,7)) + '</code>。代码变更后此证据自动作废并重跑验收。</div>';
+  }
   html += '<div class="accflow">';
   for (var i=0;i<rounds.length;i++) {
     var r = rounds[i];
@@ -2030,10 +2051,13 @@ function renderAccView(){
   html += '</div>';
   var hist = (acc.history || []).slice().reverse();
   if (hist.length) {
-    html += '<div style="padding:14px 14px 4px;font-size:11px;color:var(--mut);letter-spacing:2px">检查记录（新→旧）</div>';
+    html += '<div style="padding:14px 14px 4px;font-size:11px;color:var(--mut);letter-spacing:2px">检查记录（新→旧）' + (acc.escalated ? ' · 升级' + acc.escalated + '次' : '') + '</div>';
     for (var h=0; h<Math.min(hist.length, 12); h++) {
       var e = hist[h];
-      html += '<div class="acchist"><span class="' + (e.pass ? "hok" : "hfail") + '">' + (e.pass ? "✓" : "✗") + '</span><span class="hmeta">R' + (e.r+1) + ' · ' + fmtRel(e.t) + '</span><div class="hout">' + esc(e.out || "") + '</div></div>';
+      var passIcon = e.pass === 1 ? "✓" : (e.pass === 0 ? "✗" : "↺");
+      var passCls = e.pass === 1 ? "hok" : (e.pass === 0 ? "hfail" : "");
+      var commitTag = e.commit ? ' <span style="color:var(--ok);font-size:10px">@' + e.commit.slice(0,7) + '</span>' : "";
+      html += '<div class="acchist"><span class="' + passCls + '">' + passIcon + '</span><span class="hmeta">R' + (e.r+1) + ' · ' + fmtRel(e.t) + commitTag + '</span><div class="hout">' + esc(e.out || "") + '</div></div>';
     }
   }
   html += '<div style="display:flex;gap:8px;padding:12px 14px;flex-wrap:wrap">';
@@ -2050,6 +2074,14 @@ function renderAccView(){
   if (now) now.onclick = function(){ if (t.acc) { t.acc.nextAt = 0; renderAccView._sig = ""; fetch("/tasks/" + t.id, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ acc: t.acc }) }).then(function(){ toast("已触发服务端立即检查"); }); } };
   var rs = $("accresume");
   if (rs) rs.onclick = function(){ if (t.acc) { t.acc.pause = 0; t.acc.attempts = 0; renderAccView._sig = ""; tApi("PATCH", { acc: t.acc }, t.id); refreshAll(); } };
+  var ul = $("accunlock");
+  if (ul) ul.onclick = function() {
+    if (!t.acc) return;
+    t.acc.tampered = null;
+    t.acc.status = "";
+    renderAccView._sig = "";
+    tApi("PATCH", { acc: t.acc }, t.id).then(function(){ toast("已解锁验收"); refreshAll(); });
+  };
   var ap = $("accpass");
   if (ap) ap.onclick = function(){ moveTask(t.id, "done", null, true); };
   var ar = $("accreject");
