@@ -942,21 +942,34 @@ function accChip(t){
   return '<span class="chip none">▣R'+cur+'/'+total+'</span>';
 }
 
+var _quotaSig = "";
 async function loadQuota(){
   try {
     var r = await fetch("/quota", { headers: { "x-pilot-token": localStorage.getItem("oc_token") || "" } });
     if (!r.ok) return;
     var q = await r.json();
-    var bar = $("errbar");
-    var html = "";
+    var msgs = [];
     for (var i = 0; i < (q.errors || []).length; i++) {
       var e = q.errors[i];
       var age = e.t ? Math.round((Date.now() - e.t) / 60000) : 0;
       if (age > 360) continue;
-      html += "⚠ 模型限额: " + esc(e.provider + " / " + e.model) + " — " + esc(e.message.slice(0, 90)) + (e.reset ? " （" + esc(e.reset) + " 重置）" : "") + "  ";
+      if (e.resetEpoch && Date.now() > e.resetEpoch) continue;
+      var resetTxt = e.resetEpoch ? new Date(e.resetEpoch).toLocaleString() : "";
+      msgs.push("⚠ 模型限额: " + e.provider + " / " + e.model + " — " + e.message.slice(0, 80) + (resetTxt ? " （" + resetTxt + " 重置）" : ""));
     }
-    if (html) { bar.style.display = "block"; bar.style.background = "#3b1f24"; bar.style.color = "var(--er)"; bar.textContent = ""; bar.appendChild(document.createTextNode(html.replace(/<[^>]*>/g, ""))); }
-    else if (bar.textContent.indexOf("模型限额") >= 0) { bar.style.display = "none"; }
+    var sig = msgs.join("|");
+    if (sig === _quotaSig) return;
+    _quotaSig = sig;
+    var bar = $("errbar");
+    if (msgs.length) {
+      bar.style.display = "block";
+      bar.style.background = "#3b1f24";
+      bar.style.color = "var(--er)";
+      bar.textContent = msgs.join("   ·   ");
+    } else {
+      bar.style.display = "none";
+      bar.textContent = "";
+    }
   } catch (e2) {}
 }
 
