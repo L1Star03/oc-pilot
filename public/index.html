@@ -172,7 +172,7 @@ main{flex:1;overflow:hidden;display:flex}
 @keyframes slideR{from{transform:translateX(28px);opacity:0}to{transform:none;opacity:1}}
 #ovh{display:flex;align-items:center;gap:8px;padding:8px 12px;padding-top:calc(8px + env(safe-area-inset-top));background:var(--bar-bg);border-bottom:1px solid var(--ln)}
 #ovtitle{flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--cy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#ovbody{flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column}
+#ovbody{flex:1;overflow-y:auto;min-height:0}
 #tabs{display:flex;background:var(--bar-bg);border-bottom:1px solid var(--ln);position:sticky;top:0;z-index:5}
 #pipelineBar{display:none;flex:0 0 auto;align-items:center;gap:6px;padding:4px 10px;background:var(--bar-bg);border-bottom:1px solid var(--ln);overflow-x:auto;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:40px;z-index:4}
 #pipelineBar:hover{filter:brightness(1.1)}
@@ -197,7 +197,7 @@ main{flex:1;overflow:hidden;display:flex}
 .plalert{font-size:9.5px;color:var(--er);flex:0 0 auto;font-weight:700}
 .plgov{font-size:9.5px;color:var(--wn);flex:0 0 auto;font-weight:700}
 .plflex{flex:1}
-#dview{flex:1;overflow-y:auto;min-height:0}
+#dview{min-height:100%}
 #tabs button{flex:1;padding:10px;color:var(--mut);border-bottom:2px solid transparent;letter-spacing:2px;font-size:12.5px}
 #tabs button.on{color:var(--cy);border-bottom-color:var(--cyb)}
 #ovfoot{display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px;padding-bottom:calc(8px + env(safe-area-inset-bottom));background:var(--bar-bg);border-top:1px solid var(--ln)}
@@ -1963,18 +1963,33 @@ async function openDetail(id){
     '<div id="pipelineBar"></div><div id="dview"></div>';
   $("ovbody").innerHTML = tabsHtml;
   renderSidebar();
+  renderPipelineBar();
   await refreshDetail(true);
 }
 $("ovbody").addEventListener("click", function(e){
   var b = e.target.closest ? e.target.closest("#tabs button") : null;
   if (!b) return;
+  var prevTab = S.curTab;
+  if (prevTab === "chat") {
+    S._chatScroll = $("ovbody").scrollTop;
+  }
   S.curTab = b.getAttribute("data-t");
   dbgLog("TAB→" + S.curTab);
   if (S.curTab === "chat" && S.viewSid) { S.viewSid = null; refreshDetail._sig = ""; dbgLog("viewSid重置回主线"); }
   var tb = document.querySelectorAll("#tabs button");
   for (var j=0;j<tb.length;j++) tb[j].className = "";
   b.className = "on";
-  refreshDetail(false);
+  refreshDetail(false).then(function() {
+    if (S.curTab === "chat" && S._chatScroll !== undefined) {
+      var sc = $("ovbody");
+      var isNearBottom = sc.scrollHeight - S._chatScroll - sc.clientHeight < 160;
+      if (isNearBottom) {
+        sc.scrollTop = sc.scrollHeight;
+      } else {
+        sc.scrollTop = S._chatScroll;
+      }
+    }
+  });
 });
 function chatSig(){
   var s = "";
@@ -2523,6 +2538,8 @@ async function refreshDetail(full){
     if (full && !skipRender) {
       sc2.scrollTop = sc2.scrollHeight;
       requestAnimationFrame(function(){ sc2.scrollTop = sc2.scrollHeight; });
+      setTimeout(function(){ if (S.curTask && S.curTab === "chat") sc2.scrollTop = sc2.scrollHeight; }, 380);
+      setTimeout(function(){ if (S.curTask && S.curTab === "chat") sc2.scrollTop = sc2.scrollHeight; }, 800);
     }
     else if (!skipRender) {
       var nb = sc2.scrollHeight - sc2.scrollTop - sc2.clientHeight < 140;
