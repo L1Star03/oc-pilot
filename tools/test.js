@@ -14,10 +14,21 @@ function record(name, ok, extra) {
   const page = await browser.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(String(e.message).slice(0, 100)));
+  const consoleMsgs = [];
+  page.on('console', m => { const t = m.text(); if (t.indexOf('RD-ERR') >= 0 || t.indexOf('error') >= 0 || t.indexOf('Error') >= 0) consoleMsgs.push(t.slice(0, 120)); });
   await page.setViewport({ width: 1400, height: 900 });
-  await page.goto(BASE + '/', { waitUntil: 'networkidle2', timeout: 25000 }).catch(() => {});
-  await page.waitForFunction(() => window.S && Object.keys(S.tasks || {}).length > 0, { timeout: 20000 }).catch(() => {});
-  await new Promise(r => setTimeout(r, 1200));
+  await page.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 25000 }).catch(() => {});
+  await page.waitForFunction(() => window.S && Object.keys(S.tasks || {}).length > 0, { timeout: 25000 }).catch(async () => {
+    const info = await page.evaluate(() => ({
+      title: document.title,
+      bodyStart: (document.body ? document.body.innerHTML.slice(0, 150) : 'NOBODY'),
+      hasS: typeof window.S,
+      scripts: document.querySelectorAll('script').length,
+      readyState: document.readyState
+    })).catch(e => ({ evalFail: String(e).slice(0, 100) }));
+    console.log('DIAG after wait timeout:', JSON.stringify(info), 'consoleErrs:', consoleMsgs.slice(0, 3).join(' | '));
+  });
+  await new Promise(r => setTimeout(r, 1500));
 
   // T1 page loads with demo tasks
   const t1 = await page.evaluate(() => ({ tasks: Object.keys(S.tasks || {}).length, ver: (document.getElementById('ver') || {}).textContent }));
@@ -29,10 +40,12 @@ function record(name, ok, extra) {
 
   // T3 theme popover
   const t3 = await page.evaluate(async () => {
-    document.getElementById('thmBtn').click();
+    const btn = document.getElementById('thmBtn');
+    if (!btn) return -1;
+    btn.click();
     await new Promise(r => setTimeout(r, 300));
     const opts = document.querySelectorAll('#themepop .topt').length;
-    document.getElementById('thmBtn').click();
+    btn.click();
     return opts;
   });
   record('T3 主题弹窗', t3 === 4, 'themes=' + t3);
@@ -67,14 +80,16 @@ function record(name, ok, extra) {
 
   // T6 OBS page
   const t6 = await page.evaluate(async () => {
-    document.getElementById('statsBtn').click();
+    const btn = document.getElementById('statsBtn');
+    if (!btn) return { ok: false, kpis: 0, missing: true };
+    btn.click();
     await new Promise(r => setTimeout(r, 1400));
     const el = document.getElementById('statsView');
     const ok = getComputedStyle(el).display !== 'none' && (el.querySelectorAll('.obkpi').length === 4 || el.textContent.indexOf('无法获取') >= 0);
     document.getElementById('obclose').click();
     return { ok, kpis: el.querySelectorAll('.obkpi').length };
   });
-  record('T6 OBS 统计页', t6.ok, 'kpis=' + t6.kpis);
+  record('T6 OBS 统计页', t6.ok, 'kpis=' + t6.kpis + (t6.missing ? ' (statsBtn missing)' : ''));
 
   // T7 settings dialog + effort options (backend-independent)
   const t7 = await page.evaluate(async () => {
@@ -100,14 +115,16 @@ function record(name, ok, extra) {
 
   // T9 more menu (⋯)
   const t9 = await page.evaluate(async () => {
-    document.getElementById('moreBtn').click();
+    const btn = document.getElementById('moreBtn');
+    if (!btn) return { items: 0, visible: false, missing: true };
+    btn.click();
     await new Promise(r => setTimeout(r, 250));
     const items = document.querySelectorAll('#morepop button').length;
     const visible = getComputedStyle(document.getElementById('morepop')).display === 'flex';
     document.body.click();
     return { items, visible };
   });
-  record('T9 ⋯菜单', t9.items >= 3 && t9.visible, 'items=' + t9.items);
+  record('T9 ⋯菜单', t9.items >= 3 && t9.visible, 'items=' + t9.items + (t9.missing ? ' (moreBtn missing)' : ''));
 
   // T10 no page errors
   record('T10 无 JS 页面错误', errors.length === 0, errors.slice(0, 2).join(' | '));
