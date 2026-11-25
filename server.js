@@ -275,6 +275,41 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (url.pathname === "/quota") {
+    try {
+      const logPath = process.env.OPENCODE_LOG || "C:\\Users\\ROG\\.local\\share\\opencode\\log\\opencode.log";
+      const st = fs.statSync(logPath);
+      const fd = fs.openSync(logPath, "r");
+      const len = Math.min(400 * 1024, st.size);
+      const buf = Buffer.alloc(len);
+      fs.readSync(fd, buf, 0, len, st.size - len);
+      fs.closeSync(fd);
+      const tail = buf.toString("utf8");
+      const errs = [];
+      for (const l of tail.split("\n")) {
+        if (l.indexOf("level=ERROR") < 0) continue;
+        if (l.indexOf("AI_APICallError") < 0 && l.indexOf("stream error") < 0) continue;
+        try {
+          const ts = (l.match(/timestamp=([\dT:.+Z-]+)/) || [])[1] || "";
+          const prov = (l.match(/providerID=([^\s]+)/) || [])[1] || "";
+          const model = (l.match(/modelID=([^\s]+)/) || [])[1] || "";
+          const sess = (l.match(/session\.id=([^\s]+)/) || [])[1] || "";
+          let errm = (l.match(/error\.error="([^"]*)"/) || [])[1] || "";
+          if (!errm) errm = (l.match(/error="([^"]*)"/) || [])[1] || "";
+          if (!errm) continue;
+          const reset = (errm.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s*重置/) || [])[1] || "";
+          const t = ts ? Date.parse(ts) : 0;
+          if (t && Date.now() - t > 6 * 3600 * 1000) continue;
+          errs.push({ t, provider: prov, model: model, session: sess, message: errm.slice(0, 200), reset });
+        } catch (e2) {}
+      }
+      const seen = {};
+      const uniq = errs.filter(function(x){ const key = x.provider + x.model + x.message.slice(0, 60); if (seen[key]) return false; seen[key] = 1; return true; }).slice(-5);
+      json(res, 200, { errors: uniq });
+    } catch (e) { json(res, 200, { errors: [] }); }
+    return;
+  }
+
   if (url.pathname.startsWith("/api/")) {
     const upPath = url.pathname.slice(4) + url.search;
     const port = pickBackend(req);

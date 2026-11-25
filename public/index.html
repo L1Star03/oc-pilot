@@ -942,6 +942,24 @@ function accChip(t){
   return '<span class="chip none">▣R'+cur+'/'+total+'</span>';
 }
 
+async function loadQuota(){
+  try {
+    var r = await fetch("/quota", { headers: { "x-pilot-token": localStorage.getItem("oc_token") || "" } });
+    if (!r.ok) return;
+    var q = await r.json();
+    var bar = $("errbar");
+    var html = "";
+    for (var i = 0; i < (q.errors || []).length; i++) {
+      var e = q.errors[i];
+      var age = e.t ? Math.round((Date.now() - e.t) / 60000) : 0;
+      if (age > 360) continue;
+      html += "⚠ 模型限额: " + esc(e.provider + " / " + e.model) + " — " + esc(e.message.slice(0, 90)) + (e.reset ? " （" + esc(e.reset) + " 重置）" : "") + "  ";
+    }
+    if (html) { bar.style.display = "block"; bar.style.background = "#3b1f24"; bar.style.color = "var(--er)"; bar.textContent = ""; bar.appendChild(document.createTextNode(html.replace(/<[^>]*>/g, ""))); }
+    else if (bar.textContent.indexOf("模型限额") >= 0) { bar.style.display = "none"; }
+  } catch (e2) {}
+}
+
 async function refreshAll(){
   var ok = true;
   var sess = null, stat = {}, tsk = {}, qs = null;
@@ -972,6 +990,7 @@ async function refreshAll(){
   if (S.curTask && S.tasks[S.curTask.id]) S.curTask = S.tasks[S.curTask.id];
   autoStage();
   watchWake();
+  loadQuota();
   if (!S._migDone) { S._migDone = 1; migrateRoles(); }
   renderBoard();
   renderBanner();
