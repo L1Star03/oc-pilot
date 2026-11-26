@@ -203,7 +203,27 @@ function handleTasks(req, res, url) {
     readBody(req, function(o){
       const STAGES = ["todo", "plan", "exec", "review", "done"];
       const scopeChanged = (typeof o.title === "string" && o.title !== t.title) || (typeof o.desc === "string" && o.desc !== t.desc);
+      const enteringExec = o.stage === "exec" && t.stage !== "exec";
       if (o.stage && STAGES.indexOf(o.stage) >= 0) t.stage = o.stage;
+
+      // Auto-generate L1 acceptance when entering exec without a plan
+      if (enteringExec && !t.acc) {
+        const auto = detectDefaultAcceptance(ROOTS[0]);
+        if (auto) {
+          t.acc = auto;
+          if (t.acc.rounds) {
+            for (let ri = 0; ri < t.acc.rounds.length; ri++) {
+              if (t.acc.rounds[ri].cmd) registerRoundHash(parts[1], ri, t.acc.rounds[ri].cmd);
+            }
+          }
+          console.log("[auto-acceptance] task " + parts[1] + " generated " + t.acc.rounds.length + " rounds");
+        }
+      }
+
+      // Auto-upgrade to multi-agent for complex tasks when entering exec
+      if (enteringExec && t.mode === "single" && !t.workers.length && t.desc && t.desc.length > 300) {
+        t._recommendSplit = true;
+      }
       if (typeof o.title === "string") t.title = o.title.slice(0, 200);
       if (typeof o.desc === "string") t.desc = o.desc.slice(0, 2000);
       if (typeof o.sessionID === "string") t.sessionID = o.sessionID;
@@ -555,7 +575,6 @@ setInterval(async () => {
         acc.governance = { failures: gates.failures, checked: Date.now() };
         saveTasks();
         console.log("[governance] task " + id + " blocked: " + details);
-        // Send feedback to agent if it has pending todos
         const todoFail = gates.failures.find(f => f.gate === "todo_convergence");
         if (todoFail && t.sessionID) {
           await gov.sendFeedback(t.sessionID,
@@ -567,6 +586,52 @@ setInterval(async () => {
             "（治理门禁）工作区有 " + treeFail.detail + " 未提交。请 git commit 后再宣告完成。\n变更文件：\n" + treeFail.items.join("\n"));
         }
         continue;
+      }
+
+      // === Independent review agent ===
+      // All automated rounds passed + governance gates passed
+      // Now spawn a review agent to assess code quality
+      if (!acc.reviewDone) {
+        acc.status = "review_agent";
+        saveTasks();
+        const passedRounds = (acc.history || []).filter(h => h.pass === 1);
+        const reviewResult = await gov.spawnReviewAgent(t, passedRounds);
+        if (reviewResult) {
+          acc.reviewDone = true;
+          acc.reviewResult = reviewResult;
+          if (reviewResult.approved) {
+            acc.status = "waiting_human";
+            saveTasks();
+            console.log("[review-agent] task " + id + " APPROVED: " + reviewResult.reason);
+          } else {
+            acc.status = "";
+            acc.cur = 0;
+            acc.history = (acc.history || []).concat([{ r: -1, pass: -1, out: "review agent rejected: " + reviewResult.reason, t: Date.now() }]);
+            t.stage = "exec";
+            saveTasks();
+            console.log("[review-agent] task " + id + " REJECTED: " + reviewResult.reason);
+            if (t.sessionID) {
+              await gov.sendFeedback(t.sessionID,
+                "（独立审查驳回）审查 agent 发现以下问题：\n" + reviewResult.reason + "\n\n请修复以上问题后重新完成任务。");
+            }
+          }
+        } else {
+          // Review agent failed to spawn — skip and go to human
+          acc.status = "waiting_human";
+          acc.reviewDone = true;
+          saveTasks();
+        }
+        continue;
+      }
+
+      // Review agent already done (or was skipped)
+      if (acc.reviewResult && !acc.reviewResult.approved) {
+        // Previously rejected, but code may have been fixed
+        if (!acc._recheckAt || Date.now() > acc._recheckAt) {
+          acc.reviewDone = false;
+          acc._recheckAt = Date.now() + 60000;
+          saveTasks();
+        }
       }
       acc.status = "waiting_human";
       saveTasks();

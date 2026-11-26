@@ -1538,7 +1538,7 @@ async function moveTask(id, to, feedback, quiet){
       if (t.mode === "multi") {
         await sendMsg(sid1, "任务：" + t.title + (t.desc ? "\n描述：" + t.desc : "") + "\n\n这是多智能体协同任务，请完成规划：\n1) 分析任务，梳理实际执行流程；\n2) 设计 2~4 路并行分工方案：按任务实际流程/模块划分（不要照搬固定模板，要贴合本任务，每路给出「角色名：职责说明」）；\n3) 用 question 工具向用户列出你设计的几个候选分工方案让用户选择；\n4) 用户确认后，输出最终计划（todo 清单），并在最后一行严格按此格式输出分工：\nSPLIT: 角色1：职责 | 角色2：职责 | 角色3：职责\n此阶段不要实际修改任何文件。");
       } else {
-        await sendMsg(sid1, "任务：" + t.title + (t.desc ? "\n描述：" + t.desc : "") + "\n\n请先分析这个任务并制定执行计划：用 todo 工具列出清晰的执行步骤清单，说明每一步要做什么。此阶段不要实际修改任何文件。");
+        await sendMsg(sid1, "任务：" + t.title + (t.desc ? "\n描述：" + t.desc : "") + "\n\n请完成以下分析（此阶段不要实际修改任何文件）：\n\n1) 评估复杂度：这个任务是简单（单文件小改动）、中等（多文件、有依赖）、还是复杂（多模块、可并行、需要独立测试）？\n\n2) 制定执行计划：用 todo 工具列出清晰的执行步骤。\n\n3) 分工建议：\n   - 如果是简单任务，直接说「SINGLE: 单agent执行即可」\n   - 如果是中等或复杂任务，评估是否适合并行分工，如果是，输出：\n     SPLIT: 角色1：职责 | 角色2：职责 | 角色3：职责\n   - 如果不确定，说「SINGLE: 建议单agent，原因：...」\n\n4) 验收标准：建议 2-4 个可自动验证的检查点（如：build 通过、特定测试通过、文件存在等）。");
       }
     } else if (to === "plan" && from === "review") {
       if (!quiet) {
@@ -1551,10 +1551,26 @@ async function moveTask(id, to, feedback, quiet){
         if (t.sessionID) planCtx = await lastAssistantText(t.sessionID);
         await spawnWorkers(t, planCtx);
       } else {
+        // Check if plan recommended splitting
+        var planTxt = "";
+        if (t.sessionID && from === "plan") {
+          planTxt = await lastAssistantText(t.sessionID);
+        }
+        var splitMatch = planTxt && planTxt.match(/SPLIT:\s*([^\n]+)/);
+        if (splitMatch) {
+          var splitPlan = parseSplit(planTxt);
+          if (splitPlan && splitPlan.length >= 2) {
+            toast("计划建议多agent分工（" + splitPlan.length + "路），自动切换");
+            t.mode = "multi";
+            await spawnWorkers(t, planTxt);
+            await tApi("PATCH", { mode: "multi", workers: t.workers }, id);
+            return;
+          }
+        }
         var sid2 = await ensureSession(t);
         var msg = (from === "plan")
-          ? "计划已确认，请按上面的 todo 清单开始逐步执行，每完成一步及时更新清单。"
-          : "任务：" + t.title + (t.desc ? "\n描述：" + t.desc : "") + "\n\n请创建 todo 清单并直接开始执行，完成所有步骤。";
+          ? "计划已确认，请按上面的 todo 清单开始逐步执行，每完成一步及时更新清单。完成后系统会自动运行验收检查。"
+          : "任务：" + t.title + (t.desc ? "\n描述：" + t.desc : "") + "\n\n请创建 todo 清单并直接开始执行，完成所有步骤。完成后系统会自动运行验收检查。";
         await sendMsg(sid2, msg);
       }
     } else if (to === "exec" && from === "review") {
@@ -2062,7 +2078,7 @@ function renderAccView(){
   var sig = t.id + ":" + JSON.stringify(acc);
   if (sig === renderAccView._sig) return;
   renderAccView._sig = sig;
-  var statusTxt = acc.done ? "全部通过" : (acc.tampered ? "⚠ 验收脚本被篡改" : (acc.governance ? "⚠ 治理门禁拦截" : (acc.pause ? "已暂停（需人工介入）" : (acc.status === "waiting_human" ? "等待人工终审" : (acc.status === "governance_blocked" ? "治理门禁拦截中" : "进行中")))));
+  var statusTxt = acc.done ? "全部通过" : (acc.tampered ? "⚠ 验收脚本被篡改" : (acc.reviewResult && !acc.reviewResult.approved ? "⚠ 审查驳回" : (acc.status === "review_agent" ? "审查 agent 审核中…" : (acc.governance ? "⚠ 治理门禁拦截" : (acc.pause ? "已暂停（需人工介入）" : (acc.status === "waiting_human" ? "等待人工终审" : (acc.status === "governance_blocked" ? "治理门禁拦截中" : "进行中")))))));
   if (acc.scopeInvalidated) statusTxt += " · 范围变更" + acc.scopeInvalidated + "次";
   if (acc.lastPassCommit) statusTxt += ' · 绑定 commit <span style="color:var(--ok)">' + esc(acc.lastPassCommit.slice(0,7)) + '</span>';
   var html = '<div style="padding:14px 14px 6px;font-size:12px;color:var(--dim);letter-spacing:1px">验收流水线 · ' + statusTxt + '</div>';
@@ -2072,6 +2088,18 @@ function renderAccView(){
       '<br>预期: <code>' + acc.tampered.expected + '</code> 实际: <code>' + acc.tampered.actual + '</code>' +
       '<br>验收已锁定。如确认为你本人修改，点确认解锁。' +
       '<button class="abtn" id="accunlock" style="margin-top:6px">确认为本人修改，解锁</button></div>';
+  }
+  if (acc.reviewResult) {
+    var rr = acc.reviewResult;
+    var rrColor = rr.approved ? "var(--ok)" : "var(--er)";
+    var rrBg = rr.approved ? "rgba(78,201,164,.08)" : "rgba(241,76,76,.08)";
+    html += '<div style="margin:6px 14px;padding:10px 12px;background:' + rrBg + ';border:1px solid ' + rrColor + ';border-radius:8px;font-size:12px;color:' + rrColor + '">' +
+      (rr.approved ? '✓ 独立审查通过' : '✗ 独立审查驳回') +
+      '<div style="color:var(--dim);font-size:11px;margin-top:4px;word-break:break-all">' + esc(rr.reason || "") + '</div></div>';
+  }
+  if (acc.status === "review_agent") {
+    html += '<div style="margin:6px 14px;padding:10px 12px;background:rgba(65,164,255,.08);border:1px solid var(--cy);border-radius:8px;font-size:12px;color:var(--cy)">' +
+      '◈ 独立审查 agent 正在审核代码变更…</div>';
   }
   if (acc.governance && acc.governance.failures) {
     html += '<div style="margin:6px 14px;padding:10px 12px;background:rgba(215,186,99,.08);border:1px solid var(--wn);border-radius:8px;font-size:11.5px;color:var(--wn)">';
@@ -2458,6 +2486,8 @@ function renderPipelineBar(){
     }
     html += '<span class="pldots">' + dots + '</span>';
     if (acc.done) html += '<span class="plstage pass">☑</span>';
+    else if (acc.reviewResult && !acc.reviewResult.approved) html += '<span class="plalert">✗审查</span>';
+    else if (acc.status === "review_agent") html += '<span class="plgov">◈审查中</span>';
     if (acc.lastPassCommit) html += '<span class="plcommit">@' + acc.lastPassCommit.slice(0,7) + '</span>';
     if (acc.tampered) html += '<span class="plalert">⚠篡改</span>';
     if (acc.governance && acc.governance.failures) html += '<span class="plgov">⚠治理</span>';
