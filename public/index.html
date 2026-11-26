@@ -1112,6 +1112,7 @@ function isWorkerSession(s){
   return / #W\d| #MERGE/.test(s.title || "");
 }
 function renderBoard(){
+  if (S._dragging) { renderBoard._pending = true; return; }
   var sig = JSON.stringify(S.statuses) + "#" + Object.keys(S.tasks).map(function(k){ var t=S.tasks[k]; return k+t.stage+t.updated+(t.sessionID||"")+(t.sessionID?activityOf(t.sessionID):"")+((t.workers&&t.workers.length)||0)+(t.merged?1:0); }).sort().join("|") + "#" + Object.keys(S.sessions).map(function(k){ var s=S.sessions[k]; return k+((s.time&&s.time.updated)||0)+((s._todo&&s._todo.length)||0)+(s.parentID||""); }).sort().join("|") + "#" + JSON.stringify(S.liveTools) + "#" + JSON.stringify(S.cardSubOpen) + "#" + JSON.stringify(S.lastMsg) + "#" + JSON.stringify(S.cardUsage) + "#" + Object.keys(S.runStart).map(function(k){ return k + Math.floor((Date.now() - S.runStart[k]) / 10000); }).join(",");
   if (sig === renderBoard._sig) return;
   renderBoard._sig = sig;
@@ -1273,8 +1274,8 @@ function bindBoard(){
       var cid = card.getAttribute("data-id");
       var lp = null;
       card._fired = false;
-      card.addEventListener("dragstart", function(e){ e.dataTransfer.setData("text/plain", cid); this.style.opacity=.5; });
-      card.addEventListener("dragend", function(){ this.style.opacity=1; });
+      card.addEventListener("dragstart", function(e){ e.dataTransfer.setData("text/plain", cid); this.style.opacity=.5; S._dragging = true; });
+      card.addEventListener("dragend", function(){ this.style.opacity=1; S._dragging = false; if (renderBoard._pending) { renderBoard._pending = false; renderBoard._sig = ""; renderBoard(); } });
       card.addEventListener("touchstart", function(){ card._fired = false; lp = setTimeout(function(){ card._fired = true; askDeleteTask(cid); }, 650); }, {passive:true});
       card.addEventListener("touchend", function(){ clearTimeout(lp); }, {passive:true});
       card.addEventListener("touchmove", function(){ clearTimeout(lp); }, {passive:true});
@@ -1851,6 +1852,29 @@ $("fplan").onclick = function(){ $("fdlg").style.display = "none"; if (reworkId)
 function renderQuestions(){
   var el = $("qbanner");
   if (!el) return;
+  var sig = JSON.stringify(S.questions);
+  if (sig === renderQuestions._sig) return;
+  renderQuestions._sig = sig;
+  var prevSel = {};
+  el.querySelectorAll(".qcard").forEach(function(card){
+    var qid = card.getAttribute("data-qid");
+    card.querySelectorAll(".qq").forEach(function(qq){
+      var qi = qq.getAttribute("data-qi");
+      var sels = qq.querySelectorAll(".qopt.sel");
+      if (sels.length) {
+        if (!prevSel[qid]) prevSel[qid] = {};
+        prevSel[qid][qi] = Array.from(sels).map(function(s){ return s.getAttribute("data-label"); });
+      }
+      var cu = qq.querySelector(".qcustom");
+      if (cu && cu.value.trim()) {
+        if (!prevSel[qid]) prevSel[qid] = {};
+        if (!prevSel[qid][qi]) prevSel[qid][qi] = [];
+        prevSel[qid][qi].push(cu.value.trim());
+        if (!prevSel[qid]["custom"]) prevSel[qid]["custom"] = {};
+        prevSel[qid]["custom"][qi] = cu.value;
+      }
+    });
+  });
   var html = "";
   for (var qid in S.questions) {
     var req = S.questions[qid];
@@ -1866,9 +1890,13 @@ function renderQuestions(){
       var opts = q.options || [];
       for (var j=0;j<opts.length;j++) {
         var o = typeof opts[j] === "string" ? { label: opts[j] } : opts[j];
-        html += '<button class="qopt" data-label="'+esc(o.label||"")+'"><b>'+esc(o.label||"")+'</b>'+(o.description?'<span class="od">'+esc(o.description)+'</span>':"")+'</button>';
+        var wasSel = prevSel[qid] && prevSel[qid][i] && prevSel[qid][i].indexOf(o.label) >= 0;
+        html += '<button class="qopt'+(wasSel?" sel":"")+'" data-label="'+esc(o.label||"")+'"><b>'+esc(o.label||"")+'</b>'+(o.description?'<span class="od">'+esc(o.description)+'</span>':"")+'</button>';
       }
-      if (q.custom) html += '<input class="qcustom" placeholder="或输入自定义回答…">';
+      if (q.custom) {
+        var prevCustom = prevSel[qid] && prevSel[qid]["custom"] && prevSel[qid]["custom"][i];
+        html += '<input class="qcustom" placeholder="或输入自定义回答…"' + (prevCustom ? ' value="' + esc(prevCustom) + '"' : "") + '>';
+      }
       if (q.multiple) html += '<div class="qhint">◈ 可多选</div>';
       html += '</div>';
     }
@@ -2350,7 +2378,8 @@ function renderGraphView(){
     var pending = todos.filter(function(x){ return x.status === "pending" || x.status === "in_progress"; });
     html += '<div class="dl"><span class="dk">TODO 收敛</span><span class="dv ' + (pending.length === 0 ? "ok" : "warn") + '">' + (todos.length === 0 ? "无 todo" : pending.length + "/" + todos.length + " 未完成") + '</span></div>';
     var runSecs = 0;
-    if (act === "run" && S.runStart[t.sessionID]) runSecs = Math.round((Date.now() - S.runStart[t.sessionID]) / 1000);
+    var _act = t.sessionID ? activityOf(t.sessionID) : "";
+    if (_act === "run" && S.runStart[t.sessionID]) runSecs = Math.round((Date.now() - S.runStart[t.sessionID]) / 1000);
     if (runSecs > 0) html += '<div class="dl"><span class="dk">运行时长</span><span class="dv">⏱ ' + fmtDur(runSecs) + '</span></div>';
     html += '</div>';
   }
