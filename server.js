@@ -439,9 +439,31 @@ const server = http.createServer((req, res) => {
       const cwd = underRoot(o.dir || ROOTS[0]) || ROOTS[0];
       if (!cmd || !cwd) { json(res, 400, { error: "bad acc run" }); return; }
       const { exec } = require("child_process");
-      exec(cmd, { cwd, timeout: 150000, maxBuffer: 4*1024*1024, encoding: "utf8", shell: IS_WIN ? "powershell" : "/bin/bash" }, (e, out) => {
+      exec(cmd, { cwd, timeout: 150000, maxBuffer: 4*1024*1024, encoding: "utf8", shell: IS_WIN ? "powershell" : "/bin/bash", windowsHide: true, windowsDelimitedArguments: false }, (e, out) => {
         json(res, 200, { pass: !e, code: e ? (e.code || 1) : 0, output: String(out || (e ? e.message : "")).slice(0, 4000) });
       });
+    });
+    return;
+  }
+
+  if (url.pathname === "/forcekill" && req.method === "POST") {
+    readBody(req, function(o){
+      const sessionID = String(o.sessionID || "");
+      if (!sessionID) { json(res, 400, { error: "sessionID required" }); return; }
+      const { exec } = require("child_process");
+      const tasks = [
+        IS_WIN ? "taskkill /F /T /FI \"WINDOWTITLE eq opencode*\" /IM node.exe" : "pkill -f opencode",
+        IS_WIN ? "taskkill /F /T /FI \"WINDOWTITLE eq opencode*\" /IM opencode.exe" : "true"
+      ];
+      let killed = 0;
+      const run = (i) => {
+        if (i >= tasks.length) { json(res, 200, { killed, message: killed ? "强制终止完成" : "未找到可终止进程" }); return; }
+        exec(tasks[i], { timeout: 10000, windowsHide: true }, (e, out) => {
+          if (!e) killed++;
+          run(i + 1);
+        });
+      };
+      run(0);
     });
     return;
   }
@@ -481,6 +503,28 @@ const server = http.createServer((req, res) => {
       const uniq = errs.filter(function(x){ const key = x.provider + x.model + x.message.slice(0, 60); if (seen[key]) return false; seen[key] = 1; return true; }).slice(-5);
       json(res, 200, { errors: uniq });
     } catch (e) { json(res, 200, { errors: [] }); }
+    return;
+  }
+
+  if (url.pathname === "/usage") {
+    (async () => {
+      try {
+        const sessions = await fetch(ACC_BACKEND + "/session").then(r => r.json()).catch(() => []);
+        const stats = { totalCost: 0, totalTokens: 0, byModel: {}, byProvider: {}, recent: [] };
+        for (const s of (sessions || [])) {
+          if (!s) continue;
+          const cost = s.cost || 0;
+          const tokens = (s.tokens && (s.tokens.input + s.tokens.output)) || 0;
+          stats.totalCost += cost;
+          stats.totalTokens += tokens;
+          const dir = (s.directory || "").replace(/^C:\\Users\\ROG\\/g, "").replace(/\\/g, "/");
+          stats.recent.push({ id: s.id, title: (s.title || "").slice(0, 40), cost, tokens, dir, updated: s.time && s.time.updated });
+        }
+        stats.recent.sort((a, b) => (b.updated || 0) - (a.updated || 0));
+        stats.recent = stats.recent.slice(0, 10);
+        json(res, 200, stats);
+      } catch (e) { json(res, 200, { totalCost: 0, totalTokens: 0, byModel: {}, byProvider: {}, recent: [] }); }
+    })();
     return;
   }
 
@@ -643,7 +687,7 @@ setInterval(async () => {
       if (busy) continue;
     } catch (e) { continue; }
 
-    exec(String(r.cmd), { cwd: t.dir || ROOTS[0], timeout: 150000, maxBuffer: 4*1024*1024, encoding: "utf8", shell: IS_WIN ? "powershell" : "/bin/bash" }, async (e, out) => {
+    exec(String(r.cmd), { cwd: t.dir || ROOTS[0], timeout: 150000, maxBuffer: 4*1024*1024, encoding: "utf8", shell: IS_WIN ? "powershell" : "/bin/bash", windowsHide: true }, async (e, out) => {
       acc.history = acc.history || [];
       const pass = !e;
       if (pass) {

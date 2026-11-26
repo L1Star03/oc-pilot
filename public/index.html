@@ -3383,19 +3383,21 @@ $("send").onclick = async function(){
       refreshDetail(false);
     } else {
       S_runStart[sid] = Date.now();
+      toast("⏳ 发送中…");
+      var sendTimer = setTimeout(function(){ toast("⏳ 仍在等待模型回复…"); }, 10000);
       try {
         await sendMsg(sid, v, sendOpts());
+        clearTimeout(sendTimer);
       } catch (sendErr) {
+        clearTimeout(sendTimer);
         $("inp").value = v;
         if (!sendErr.fromResponse) toast("发送失败（网络/服务），已恢复输入");
-        else $("inp").value = v;
         updateRunBar();
         return;
       }
       try { S.inpHist.push(v); if (S.inpHist.length > 50) S.inpHist.shift(); localStorage.setItem("oc_inphist", JSON.stringify(S.inpHist)); } catch(e3){}
-      toast("已发送，等待回复…");
+      toast("✓ 已收到回复");
       updateRunBar();
-      
     }
     setTimeout(markDirty, 600);
   } catch(e){ toast("发送失败"); }
@@ -3629,69 +3631,62 @@ function obBars(byDay, days){
 async function renderStats(){
   var el = document.getElementById("statsView");
   if (!el) return;
-  el.innerHTML = '<div class="empty">加载统计…</div>';
-  var sessions = [];
-  try { sessions = (await api("/session")) || []; } catch(e){ el.innerHTML = '<div class="empty">无法获取会话数据</div>'; return; }
-  if (!Array.isArray(sessions)) sessions = [];
-  var projs = {};
-  for (var i=0;i<sessions.length;i++){
-    var p = (sessions[i].directory || "").split(/[\\/]/).pop() || "—";
-    projs[p] = 1;
+  el.innerHTML = '<div class="empty">加载限额与用量…</div>';
+
+  var usage = null, quota = null;
+  try { usage = await fetch("/usage").then(r => r.json()); } catch(e) {}
+  try { quota = await fetch("/quota").then(r => r.json()); } catch(e) {}
+
+  var html = '<div style="padding:18px 20px;max-width:720px;margin:0 auto">';
+  html += '<div class="obhead"><h2>◤ 限额 & 用量</h2><button class="hbtn" id="obclose">‹ 返回</button></div>';
+
+  html += '<h3 style="font-size:13px;color:var(--cy);letter-spacing:2px;margin:14px 0 8px">模型限额</h3>';
+  if (quota && quota.errors && quota.errors.length) {
+    for (var qi = 0; qi < quota.errors.length; qi++) {
+      var e = quota.errors[qi];
+      var expired = e.resetEpoch && Date.now() > e.resetEpoch;
+      var color = expired ? "var(--ok)" : "var(--er)";
+      var bg = expired ? "rgba(78,201,164,.08)" : "rgba(241,76,76,.08)";
+      var resetIn = "";
+      if (e.resetEpoch && !expired) {
+        var mins = Math.round((e.resetEpoch - Date.now()) / 60000);
+        resetIn = mins > 60 ? Math.round(mins / 60) + "小时后重置" : mins + "分钟后重置";
+      }
+      html += '<div style="padding:10px 14px;background:' + bg + ';border:1px solid ' + color + ';border-radius:10px;margin-bottom:6px;font-size:13px">';
+      html += '<div style="color:' + color + ';font-weight:700">' + (expired ? "✓ " : "⚠ ") + esc(e.provider || "?") + ' / ' + esc(e.model || "?") + (expired ? " — 已重置" : " — 限额中") + '</div>';
+      if (!expired && e.message) html += '<div style="color:var(--dim);font-size:12px;margin-top:3px">' + esc(e.message.slice(0, 120)) + '</div>';
+      if (resetIn) html += '<div style="color:var(--wn);font-size:12px;margin-top:2px">⏱ ' + resetIn + '</div>';
+      html += '</div>';
+    }
+  } else {
+    html += '<div style="color:var(--mut);font-size:12px;padding:8px 0">✓ 当前无限额错误</div>';
   }
-  var rms = obRangeMs(OB.range);
-  var now = Date.now();
-  var sel = sessions.filter(function(s){
-    var t = (s.time && (s.time.updated || s.time.created)) || 0;
-    if (rms && now - t > rms) return false;
-    var p = (s.directory || "").split(/[\\/]/).pop() || "—";
-    if (OB.proj && p !== OB.proj) return false;
-    return true;
-  });
-  var agg = { input:0, output:0, reasoning:0, cache:0, cost:0 };
-  var byDay = {}, top = [];
-  for (i=0;i<sel.length;i++){
-    var s2 = sel[i], tk = s2.tokens || {};
-    var cr = (tk.cache && tk.cache.read) || 0;
-    agg.input += tk.input || 0; agg.output += tk.output || 0; agg.reasoning += tk.reasoning || 0; agg.cache += cr; agg.cost += s2.cost || 0;
-    var d = new Date((s2.time && s2.time.updated) || Date.now());
-    var dk = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
-    byDay[dk] = (byDay[dk] || 0) + (tk.input || 0) + (tk.output || 0) + (tk.reasoning || 0) + cr;
-    top.push({ title: s2.title || s2.id.slice(4,14), cost: s2.cost || 0, tk: (tk.input||0)+(tk.output||0)+(tk.reasoning||0), dir: (s2.directory||"").split(/[\\/]/).pop() || "—", t: (s2.time && s2.time.updated) || 0 });
+
+  html += '<h3 style="font-size:13px;color:var(--cy);letter-spacing:2px;margin:18px 0 8px">用量概览</h3>';
+  if (usage) {
+    html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">';
+    html += '<div style="flex:1;min-width:150px;padding:10px 14px;background:var(--card-bg);border:1px solid var(--ln);border-radius:10px"><div style="font-size:10px;color:var(--mut)">总花费</div><div style="font-size:20px;font-weight:700;margin-top:2px">$' + (usage.totalCost||0).toFixed(2) + '</div></div>';
+    html += '<div style="flex:1;min-width:150px;padding:10px 14px;background:var(--card-bg);border:1px solid var(--ln);border-radius:10px"><div style="font-size:10px;color:var(--mut)">总 TOKENS</div><div style="font-size:20px;font-weight:700;margin-top:2px">' + fmtTokens(usage.totalTokens) + '</div></div>';
+    html += '<div style="flex:1;min-width:150px;padding:10px 14px;background:var(--card-bg);border:1px solid var(--ln);border-radius:10px"><div style="font-size:10px;color:var(--mut)">会话数</div><div style="font-size:20px;font-weight:700;margin-top:2px">' + ((usage.recent||[]).length) + '</div></div>';
+    html += '</div>';
+    if (usage.recent && usage.recent.length) {
+      html += '<div style="font-size:10px;color:var(--mut);letter-spacing:2px;margin-bottom:4px">最近活跃（按花费排序）</div>';
+      html += '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+      html += '<tr style="color:var(--mut);text-align:left"><th style="padding:3px 8px;border-bottom:1px solid var(--ln)">会话</th><th style="padding:3px 8px;border-bottom:1px solid var(--ln)">项目</th><th style="padding:3px 8px;border-bottom:1px solid var(--ln)">Tokens</th><th style="padding:3px 8px;border-bottom:1px solid var(--ln);text-align:right">花费</th></tr>';
+      var sorted = usage.recent.slice().sort(function(a,b){ return (b.cost||0) - (a.cost||0); });
+      for (var si = 0; si < Math.min(sorted.length, 8); si++) {
+        var r = sorted[si];
+        html += '<tr><td style="padding:3px 8px;border-bottom:1px solid var(--ln)">' + esc((r.title||"").slice(0,25)) + '</td><td style="padding:3px 8px;border-bottom:1px solid var(--ln);color:var(--dim)">' + esc((r.dir||"").slice(0,15)) + '</td><td style="padding:3px 8px;border-bottom:1px solid var(--ln)">' + fmtTokens(r.tokens) + '</td><td style="padding:3px 8px;border-bottom:1px solid var(--ln);text-align:right">$' + (r.cost||0).toFixed(3) + '</td></tr>';
+      }
+      html += '</table>';
+    }
+  } else {
+    html += '<div style="color:var(--mut);font-size:12px;padding:8px 0">无法获取用量数据</div>';
   }
-  top.sort(function(a,b){ return b.cost - a.cost || b.tk - a.tk; });
-  var daysN = rms ? Math.min(30, Math.max(1, Math.ceil(rms / 86400000))) : 30;
-  var days = [];
-  for (i=daysN-1;i>=0;i--){ var dd = new Date(now - i * 86400000); days.push(dd.getFullYear() + "-" + ("0" + (dd.getMonth()+1)).slice(-2) + "-" + ("0" + dd.getDate()).slice(-2)); }
-  var totalTok = agg.input + agg.output + agg.reasoning + agg.cache;
-  var html = '<div class="obhead"><h2>◤ OBS · 用量统计</h2>' +
-    '<button class="hbtn" id="obclose">‹ 返回看板</button></div>' +
-    '<div class="obhead">' +
-    [["today","今日"],["7d","7 天"],["30d","30 天"],["all","全部"]].map(function(x){ return '<button class="obtab' + (OB.range===x[0]?" on":"") + '" data-range="' + x[0] + '">' + x[1] + '</button>'; }).join("") +
-    '<select class="obsel" id="obproj"><option value="">全部项目</option>' + Object.keys(projs).sort().map(function(p2){ return '<option value="' + esc(p2) + '"' + (OB.proj===p2?" selected":"") + '>' + esc(p2) + '</option>'; }).join("") + '</select>' +
-    '</div>' +
-    '<div class="obgrid">' +
-    '<div class="obkpi"><div class="kl">总花费</div><div class="kv">$' + agg.cost.toFixed(2) + '</div><div class="ks">' + sel.length + ' 个会话</div></div>' +
-    '<div class="obkpi"><div class="kl">输入 TOKENS</div><div class="kv">' + fmtTokens(agg.input) + '</div><div class="ks">含缓存复用 ' + fmtTokens(agg.cache) + '</div></div>' +
-    '<div class="obkpi"><div class="kl">输出 TOKENS</div><div class="kv">' + fmtTokens(agg.output) + '</div><div class="ks">思考 ' + fmtTokens(agg.reasoning) + '</div></div>' +
-    '<div class="obkpi"><div class="kl">日均 TOKENS</div><div class="kv">' + fmtTokens(Math.round(totalTok / Math.max(1, daysN))) + '</div><div class="ks">按最近活动日归类</div></div>' +
-    '</div>' +
-    '<div class="obrow"><div class="obcard"><h3>TOKEN 构成</h3><div style="display:flex;gap:16px;align-items:center">' +
-    obDonut([{v:agg.input,c:"var(--cy)"},{v:agg.output,c:"var(--ok)"},{v:agg.reasoning,c:"var(--wn)"},{v:agg.cache,c:"var(--ln2)"}], totalTok, 150) +
-    '<div class="oblegend">' +
-    '<span><span class="sw" style="background:var(--cy)"></span>输入 ' + fmtTokens(agg.input) + '</span>' +
-    '<span><span class="sw" style="background:var(--ok)"></span>输出 ' + fmtTokens(agg.output) + '</span>' +
-    '<span><span class="sw" style="background:var(--wn)"></span>思考 ' + fmtTokens(agg.reasoning) + '</span>' +
-    '<span><span class="sw" style="background:var(--ln2)"></span>缓存读取 ' + fmtTokens(agg.cache) + '</span>' +
-    '</div></div></div>' +
-    '<div class="obcard"><h3>每日 TOKEN 用量</h3>' + obBars(byDay, days) + '</div></div>' +
-    '<div class="obcard"><h3>花费 TOP 会话</h3><table class="obtable"><thead><tr><th>会话</th><th>项目</th><th>TOKENS</th><th>花费</th><th>最近活动</th></tr></thead><tbody>' +
-    top.slice(0, 12).map(function(x){ return '<tr><td>' + esc(x.title) + '</td><td>' + esc(x.dir) + '</td><td>' + fmtTokens(x.tk) + '</td><td>$' + x.cost.toFixed(3) + '</td><td>' + fmtRel(x.t) + '</td></tr>'; }).join("") +
-    '</tbody></table></div>';
+
+  html += '</div>';
   el.innerHTML = html;
   document.getElementById("obclose").onclick = closeStats;
-  var tabs = el.querySelectorAll("[data-range]");
-  for (i=0;i<tabs.length;i++) tabs[i].onclick = function(){ OB.range = this.getAttribute("data-range"); renderStats(); };
-  document.getElementById("obproj").onchange = function(){ OB.proj = this.value; renderStats(); };
 }
 
 loadBackends();
