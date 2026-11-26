@@ -29,7 +29,7 @@ if (!TOKEN && IS_LOOPBACK && !process.env.PILOT_DEMO) {
 const PUB = path.join(__dirname, "public");
 const ROOTS = [process.env.PILOT_FS_ROOT || os.homedir()];
 const TASKS_FILE = process.env.PILOT_TASKS_FILE || path.join(__dirname, "tasks.json");
-const BACKENDS_FILE = path.join(__dirname, "backends.json");
+const BACKENDS_FILE = process.env.PILOT_BACKENDS_FILE || path.join(__dirname, "backends.json");
 const VAULT_FILE = path.join(__dirname, ".vault.json");
 const IS_DEMO = !!process.env.PILOT_DEMO;
 
@@ -116,11 +116,11 @@ function saveTasks() { try { fs.writeFileSync(TASKS_FILE, JSON.stringify(tasks, 
 
 let backends = [];
 try { backends = JSON.parse(fs.readFileSync(BACKENDS_FILE, "utf8")); } catch (e) { backends = []; }
-if (!backends.find(function(b){ return b.port === 4096; })) backends.unshift({ name: "web", port: 4096 });
+if (!backends.find(function(b){ return b.port === UP_PORT; })) backends.unshift({ name: "web", port: UP_PORT });
 function pickBackend(req) {
   const p = parseInt(req.headers["x-pilot-backend"] || "", 10);
   const b = backends.find(function(x){ return x.port === p; });
-  return b ? b.port : 4096;
+  return b ? b.port : UP_PORT;
 }
 
 function tokenOK(req, url) {
@@ -580,7 +580,7 @@ setInterval(async () => {
     const t = tasks[id];
     const acc = t.acc;
     if (!acc || acc.done || acc.pause) continue;
-    if (t.stage !== "exec" && t.stage !== "review") continue;
+    if (t.stage !== "review") continue; // advisory: checks only AFTER execution completes
     if (acc.status === "waiting_human") continue;
     if (acc.tampered) continue; // blocked by tamper detection
     if (acc.nextAt && Date.now() < acc.nextAt) continue;
@@ -590,71 +590,37 @@ setInterval(async () => {
     if (ri >= rounds.length) { acc.done = 1; saveTasks(); continue; }
     const r = rounds[ri];
     if (r.mode === "human") {
-      // === Governance gates before human review ===
-      const gates = await gov.runGovernanceGates(t, ROOTS[0]);
-      if (!gates.pass) {
-        const details = gates.failures.map(f => `[${f.gate}] ${f.detail}`).join("; ");
-        acc.status = "governance_blocked";
-        acc.governance = { failures: gates.failures, checked: Date.now() };
-        saveTasks();
-        console.log("[governance] task " + id + " blocked: " + details);
-        const todoFail = gates.failures.find(f => f.gate === "todo_convergence");
-        if (todoFail && t.sessionID) {
-          await gov.sendFeedback(t.sessionID,
-            "（治理门禁）你的 todo 清单还有 " + todoFail.detail + "。请先完成或显式取消未完成的步骤，然后才能进入验收。\n未完成项：\n" + todoFail.items.map(x => "- " + x).join("\n"));
-        }
-        const treeFail = gates.failures.find(f => f.gate === "clean_tree");
-        if (treeFail && t.sessionID) {
-          await gov.sendFeedback(t.sessionID,
-            "（治理门禁）工作区有 " + treeFail.detail + " 未提交。请 git commit 后再宣告完成。\n变更文件：\n" + treeFail.items.join("\n"));
-        }
-        continue;
-      }
+      // Skip if session is busy (agent still working)
+      try {
+        const stH = await fetch(ACC_BACKEND + "/session/status").then(r2 => r2.json()).catch(() => ({}));
+        if (stH && stH[t.sessionID] && stH[t.sessionID].type === "busy") continue;
+      } catch (e) { continue; }
 
-      // === Independent review agent ===
-      // All automated rounds passed + governance gates passed
-      // Now spawn a review agent to assess code quality
-      if (!acc.reviewDone) {
-        acc.status = "review_agent";
-        saveTasks();
-        const passedRounds = (acc.history || []).filter(h => h.pass === 1);
-        const reviewResult = await gov.spawnReviewAgent(t, passedRounds);
-        if (reviewResult) {
-          acc.reviewDone = true;
-          acc.reviewResult = reviewResult;
-          if (reviewResult.approved) {
-            acc.status = "waiting_human";
-            saveTasks();
-            console.log("[review-agent] task " + id + " APPROVED: " + reviewResult.reason);
-          } else {
-            acc.status = "";
-            acc.cur = 0;
-            acc.history = (acc.history || []).concat([{ r: -1, pass: -1, out: "review agent rejected: " + reviewResult.reason, t: Date.now() }]);
-            t.stage = "exec";
-            saveTasks();
-            console.log("[review-agent] task " + id + " REJECTED: " + reviewResult.reason);
-            if (t.sessionID) {
-              await gov.sendFeedback(t.sessionID,
-                "（独立审查驳回）审查 agent 发现以下问题：\n" + reviewResult.reason + "\n\n请修复以上问题后重新完成任务。");
+      // Cooldown: don't re-check governance more than once per 2 minutes
+      if (acc._govAt && Date.now() - acc._govAt < 120000) continue;
+      acc._govAt = Date.now();
+
+      // === ADVISORY ONLY: governance + review recorded, never interrupt ===
+      if (!acc.governance || !acc.governance.checked) {
+        try {
+          const gates = await gov.runGovernanceGates(t, ROOTS[0]);
+          acc.governance = { failures: gates.failures, checked: Date.now(), pass: gates.pass };
+        } catch (ge) { acc.governance = { error: String(ge.message || ge), checked: Date.now() }; }
+      }
+      if (!acc.reviewResult && !acc.reviewDone) {
+        try {
+          const passedRounds = (acc.history || []).filter(h => h.pass === 1);
+          const reviewResult = await gov.spawnReviewAgent(t, passedRounds);
+          if (reviewResult) {
+            acc.reviewDone = true;
+            acc.reviewResult = reviewResult;
+            if (!reviewResult.approved) {
+              acc.history = (acc.history || []).concat([{ r: -1, pass: 0, out: "review agent notes: " + reviewResult.reason, t: Date.now() }]);
             }
+          } else {
+            acc.reviewDone = true;
           }
-        } else {
-          // Review agent failed to spawn — skip and go to human
-          acc.status = "waiting_human";
-          acc.reviewDone = true;
-          saveTasks();
-        }
-        continue;
-      }
-
-      // Review agent already done (or was skipped)
-      if (acc.reviewResult && !acc.reviewResult.approved) {
-        // Previously rejected, but code may have been fixed
-        if (!acc._recheckAt || Date.now() > acc._recheckAt) {
-          acc.reviewDone = false;
-          acc._recheckAt = Date.now() + 60000;
-          saveTasks();
-        }
+        } catch (re) { acc.reviewDone = true; }
       }
       acc.status = "waiting_human";
       saveTasks();
@@ -677,13 +643,13 @@ setInterval(async () => {
       if (busy) continue;
     } catch (e) { continue; }
 
-    exec(String(r.cmd), { cwd: ROOTS[0], timeout: 150000, maxBuffer: 4*1024*1024, encoding: "utf8", shell: IS_WIN ? "powershell" : "/bin/bash" }, async (e, out) => {
+    exec(String(r.cmd), { cwd: t.dir || ROOTS[0], timeout: 150000, maxBuffer: 4*1024*1024, encoding: "utf8", shell: IS_WIN ? "powershell" : "/bin/bash" }, async (e, out) => {
       acc.history = acc.history || [];
       const pass = !e;
       if (pass) {
         // === Evidence-commit binding: record git HEAD ===
         const gitHead = await getGitHead(ROOTS[0]);
-        acc.history.push({ r: ri, pass: 1, out: String(out||"").slice(0,200), t: Date.now(), commit: gitHead });
+        acc.history.push({ r: ri, pass: 1, name: r.name || ("check" + (ri + 1)), out: String(out||"").slice(0,4000), t: Date.now(), commit: gitHead });
         acc.cur = ri + 1;
         acc.attempts = 0;
         acc.lastPassCommit = gitHead;
@@ -691,42 +657,24 @@ setInterval(async () => {
           // Final governance check before done
           const gates = await gov.runGovernanceGates(t, ROOTS[0]);
           if (!gates.pass) {
-            acc.done = 0;
-            acc.cur = Math.max(0, ri);
-            acc.governance = { failures: gates.failures, checked: Date.now() };
-            const todoFail = gates.failures.find(f => f.gate === "todo_convergence");
-            if (todoFail && t.sessionID) {
-              await gov.sendFeedback(t.sessionID,
-                "（治理门禁·最终检查）todo 有 " + todoFail.detail + " 未完成，不能标记为完成。\n未完成项：\n" + todoFail.items.map(x => "- " + x).join("\n"));
-            }
-            const treeFail = gates.failures.find(f => f.gate === "clean_tree");
-            if (treeFail && t.sessionID) {
-              await gov.sendFeedback(t.sessionID,
-                "（治理门禁·最终检查）工作区不干净： " + treeFail.detail + "。请先 commit。\n变更文件：\n" + treeFail.items.join("\n"));
-            }
-            acc.nextAt = Date.now() + 60000; // retry in 1 minute
-          } else {
-            acc.done = 1;
+            acc.governance = { failures: gates.failures, checked: Date.now(), advisory: true };
+            console.log("[governance] task " + id + " final advisory notes: " + gates.failures.map(f2 => f2.gate).join(","));
           }
+          acc.done = 1;
         }
       } else {
         acc.attempts = (acc.attempts||0) + 1;
-        acc.history.push({ r: ri, pass: 0, out: String(out || (e && e.message) || "").slice(0,300), t: Date.now() });
-        const rname = r.name || ("check" + (ri+1));
+        acc.history.push({ r: ri, pass: 0, name: r.name || ("check" + (ri + 1)), out: String(out || (e && e.message) || "").slice(0,2000), t: Date.now() });
         const maxR = r.maxRetry || 3;
-        let fb;
         if (acc.attempts >= maxR) {
-          fb = "（验收升级·第" + (ri+1) + "轮「" + rname + "」已连续 " + acc.attempts + " 次未过）\n最近检查输出：\n" + String(out || (e && e.message) || "无输出") + "\n停止表面修补：请重新分析失败根因，必要时更换方案。未达验收标准不得宣告完成。";
           acc.attempts = 0;
           acc.escalated = (acc.escalated || 0) + 1;
+          acc.status = "failed_attention";
           acc.nextAt = Date.now() + (r.intervalMin || 3) * 2 * 60000;
         } else {
-          fb = "（验收打回·第" + (ri+1) + "轮「" + rname + "」第" + acc.attempts + "/" + maxR + "次未过）\n检查输出：\n" + String(out || (e && e.message) || "无输出") + "\n请针对性修复后等待复检。";
           acc.nextAt = Date.now() + (r.intervalMin || 3) * 60000;
         }
-        try {
-          await fetch(ACC_BACKEND + "/session/" + t.sessionID + "/prompt_async", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ parts: [{ type: "text", text: fb }] }) });
-        } catch (e2) {}
+        // advisory: record only, no auto-rework interruption
       }
       saveTasks();
     });
@@ -741,12 +689,10 @@ setInterval(async () => {
     const currentHead = await getGitHead(ROOTS[0]);
     if (currentHead && currentHead !== acc.lastPassCommit) {
       // Code changed after acceptance passed — invalidate
-      acc.cur = 0;
-      acc.history = (acc.history || []).concat([{ r: -1, pass: -1, out: "code changed after acceptance (commit " + acc.lastPassCommit.slice(0,7) + " → " + currentHead.slice(0,7) + "): evidence invalidated", t: Date.now() }]);
+      acc.history = (acc.history || []).concat([{ r: -1, pass: 0, out: "code changed after acceptance (" + acc.lastPassCommit.slice(0,7) + " → " + currentHead.slice(0,7) + "): results may be stale", t: Date.now() }]);
       acc.lastPassCommit = null;
-      t.stage = "exec";
       saveTasks();
-      console.log("[evidence] task " + id + " code changed after pass, resetting acceptance");
+      console.log("[evidence] task " + id + " code changed after pass (advisory note)");
     }
   }
 }, 30000).unref();
@@ -761,29 +707,6 @@ setInterval(async () => {
       const busy = st && st[t.sessionID] && st[t.sessionID].type === "busy";
       const acc = t.acc;
 
-      // Ensure exec tasks always have acceptance (retroactive fix)
-      if (t.stage === "exec" && !acc) {
-        let projDir = ROOTS[0];
-        try {
-          const sess = await fetch(ACC_BACKEND + "/session/" + t.sessionID).then(r => r.json());
-          if (sess && sess.directory) projDir = sess.directory;
-        } catch (e) {}
-        const auto = detectDefaultAcceptance(projDir);
-        if (auto) {
-          t.acc = auto;
-          if (t.acc.rounds) {
-            for (let ri = 0; ri < t.acc.rounds.length; ri++) {
-              if (t.acc.rounds[ri].cmd) registerRoundHash(id, ri, t.acc.rounds[ri].cmd);
-            }
-          }
-        } else {
-          t.acc = { rounds: [{ name: "workspace check", cmd: "echo ok", intervalMin: 2, maxRetry: 2 }, { mode: "human", name: "human review" }], auto: true, fallback: true };
-          registerRoundHash(id, 0, t.acc.rounds[0].cmd);
-        }
-        saveTasks();
-        console.log("[autoStage] task " + id + " retroactive acceptance added");
-      }
-
       // todo → exec: agent started working OR already finished (session has responses)
       if (t.stage === "todo") {
         let hasResponse = false;
@@ -794,26 +717,6 @@ setInterval(async () => {
         if (busy || hasResponse) {
           t.stage = "exec";
           t.updated = Date.now();
-          // Auto-generate acceptance if none
-          if (!t.acc) {
-            let projDir = ROOTS[0];
-            try {
-              const sess = await fetch(ACC_BACKEND + "/session/" + t.sessionID).then(r => r.json());
-              if (sess && sess.directory) projDir = sess.directory;
-            } catch (e) {}
-            const auto = detectDefaultAcceptance(projDir);
-            if (auto) {
-              t.acc = auto;
-              if (t.acc.rounds) {
-                for (let ri = 0; ri < t.acc.rounds.length; ri++) {
-                  if (t.acc.rounds[ri].cmd) registerRoundHash(id, ri, t.acc.rounds[ri].cmd);
-                }
-              }
-            } else {
-              t.acc = { rounds: [{ name: "workspace check", cmd: "echo ok", intervalMin: 2, maxRetry: 2 }, { mode: "human", name: "human review" }], auto: true, fallback: true };
-              registerRoundHash(id, 0, t.acc.rounds[0].cmd);
-            }
-          }
           saveTasks();
           console.log("[autoStage] task " + id + " todo → exec (" + (busy ? "busy" : "has responses") + ")");
         }
@@ -821,8 +724,8 @@ setInterval(async () => {
 
       // exec → review: session idle + (no acc OR acc done/waiting) + has assistant response
       if (t.stage === "exec" && !busy) {
-        const canAdvance = !acc || acc.done || acc.status === "waiting_human" || acc.status === "review_agent";
-        if (canAdvance) {
+        {
+          const canAdvance = true;
           const msgs = await fetch(ACC_BACKEND + "/session/" + t.sessionID + "/message?limit=1").then(r => r.json()).catch(() => []);
           const lastIsAssistant = msgs && msgs.length && (msgs[0].info || {}).role === "assistant";
           if (lastIsAssistant) {

@@ -11,6 +11,7 @@
     "demo": "PILOT_DEMO=1 node server.js",
     "demo:win": "set PILOT_DEMO=1&& node server.js",
     "test": "node tools/test.js",
+    "test:model": "node tools/test-model-switch.js",
     "test:ci": "PILOT_DEMO=1 PILOT_TASKS_FILE=./demo/tasks.json PORT=4098 PILOT_HOST=127.0.0.1 node tools/test-ci.js"
   },
   "keywords": ["opencode", "kanban", "ai", "acceptance", "code-review", "ci"],
