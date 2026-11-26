@@ -473,7 +473,7 @@ main{flex:1;overflow:hidden;display:flex}
 <body>
 <div id="app">
   <header>
-    <div class="brand">◤ OC-PILOT <small id="ver">// v1.6.0</small></div>
+    <div class="brand">◤ OC-PILOT <small id="ver">// v1.7.0</small></div>
     <div id="dot"></div>
     <select id="bk"></select>
     <span style="flex:1"></span>
@@ -1086,7 +1086,7 @@ function autoStage(){
     if (t.mode === "multi" || (t.workers || []).length) {
       var ws = t.workers || [];
       var mergeDone = !t.mergeSid || activityOf(t.mergeSid) !== "run";
-      if (t.stage === "exec" && t.merged && mergeDone && taskActivity(t) !== "run" && accGateOk(t)) {
+      if (t.stage === "exec" && t.merged && mergeDone && taskActivity(t) !== "run") {
         (function(tid){ tApi("PATCH", { stage: "review" }, tid); })(id);
         t.stage = "review";
       } else if (t.stage === "review" && (taskActivity(t) === "run" || (t.mergeSid && activityOf(t.mergeSid) === "run"))) {
@@ -1096,7 +1096,7 @@ function autoStage(){
       continue;
     }
     var act = activityOf(t.sessionID);
-    if (t.stage === "exec" && act === "idle" && accGateOk(t)) {
+    if (t.stage === "exec" && act === "idle") {
       (function(tid){ tApi("PATCH", { stage: "review" }, tid); })(id);
       t.stage = "review";
     } else if (t.stage === "review" && act === "run") {
