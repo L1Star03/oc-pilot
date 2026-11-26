@@ -2309,14 +2309,17 @@ function renderGraphView(){
   var svgNodes = {};
   function svgNode(id, x, y, w, h, title, sub, state){
     var on = state === "run";
-    svgParts.push('<g class="gnode' + (on ? " on" : "") + '" transform="translate(' + x + ',' + y + ')">');
-    svgParts.push('<rect width="' + w + '" height="' + h + '" rx="6"/>');
     var dotc = state === "run" ? "var(--cy)" : (state === "done" ? "var(--ok)" : (state === "warn" ? "var(--wn)" : "var(--mut)"));
-    svgParts.push('<circle class="' + (on ? "gdotp" : "") + '" cx="13" cy="15" r="4" fill="' + dotc + '"/>');
-    svgParts.push('<text x="24" y="19">' + escx(trunc(title, Math.floor(w / 10))) + '</text>');
-    if (sub) svgParts.push('<text class="gsub" x="8" y="' + (h - 9) + '">' + escx(trunc(sub, Math.floor(w / 8.2))) + '</text>');
-    svgParts.push('</g>');
-    svgNodes[id] = { x: x, y: y, w: w, h: h };
+    var h2 = h;
+    if (sub && sub.length > 22) h2 = Math.max(h, 30 + Math.ceil(sub.length / 20) * 14 + 12);
+    svgParts.push('<g class="gnode' + (on ? " on" : "") + '" transform="translate(' + x + ',' + y + ')">');
+    svgParts.push('<rect width="' + w + '" height="' + h2 + '" rx="8"/>');
+    svgParts.push('<circle cx="14" cy="14" r="4" fill="' + dotc + '" class="' + (on ? "gdotp" : "") + '"/>');
+    svgParts.push('<foreignObject x="22" y="4" width="' + (w - 30) + '" height="' + (h2 - 8) + '">');
+    svgParts.push('<div xmlns="http://www.w3.org/1999/xhtml" style="font:600 13px \'Cascadia Code\',Consolas,monospace;color:var(--tx);overflow:hidden;word-wrap:break-word;line-height:1.35">' + escx(title) + '</div>');
+    if (sub) svgParts.push('<div xmlns="http://www.w3.org/1999/xhtml" style="font:400 10.5px \'Cascadia Code\',Consolas,monospace;color:var(--mut);margin-top:2px;word-wrap:break-word;line-height:1.3;max-height:' + (h2 - 30) + 'px;overflow:hidden">' + escx(sub) + '</div>');
+    svgParts.push('</foreignObject></g>');
+    svgNodes[id] = { x: x, y: y, w: w, h: h2 };
   }
   function svgEdge(aId, bId, on, solid){
     var a = svgNodes[aId], b = svgNodes[bId];
@@ -2335,7 +2338,7 @@ function renderGraphView(){
     if (on) svgParts.push('<circle r="3" fill="var(--cy)"><animateMotion dur="1.6s" repeatCount="indefinite"><mpath href="#' + id + '"/></animateMotion></circle>');
   }
   var svgRows = Math.max(1, ws.length);
-  var svgH = 160 + svgRows * 88 + (accR.length ? 100 : 0) + 20;
+  var svgH = 170 + svgRows * 95 + (accR.length ? 100 : 0) + 20;
   var svgW = 880;
   var mainCy = 90 + (svgRows * 88) / 2;
   svgNode("task", 8, mainCy - 28, 140, 56, FLOW[t.stage].icon + " " + FLOW[t.stage].name, trunc(t.title, 15), t.stage === "done" ? "done" : "");
@@ -2359,7 +2362,7 @@ function renderGraphView(){
   svgEdge("task", "main", mainState === "run");
   for (var wi2 = 0; wi2 < ws.length; wi2++) {
     var wId = "w" + wi2;
-    var wy = mainCy - (svgRows * 88) / 2 + wi2 * 88 + 16;
+    var wy = mainCy - (svgRows * 95) / 2 + wi2 * 95 + 12;
     var wst = activityOf(ws[wi2].sessionID);
     var wsub = "";
     var wtl = S.sessions[ws[wi2].sessionID] && S.sessions[ws[wi2].sessionID]._todo;
