@@ -169,7 +169,11 @@ function underRoot(p) {
 function readBody(req, cb) {
   let buf = "";
   req.on("data", function(c){ buf += c; });
-  req.on("end", function(){ let o = null; try { o = buf ? JSON.parse(buf) : {}; } catch(e){ o = {}; } cb(o); });
+  req.on("end", function(){
+    let o = null;
+    try { o = buf ? JSON.parse(buf) : {}; } catch(e){ o = {}; }
+    Promise.resolve(cb(o)).catch(function(e){ console.error("[readBody] callback error:", e); });
+  });
 }
 
 function handleTasks(req, res, url) {
@@ -200,7 +204,7 @@ function handleTasks(req, res, url) {
   if (req.method === "PATCH" && parts.length === 2) {
     const t = tasks[parts[1]];
     if (!t) { json(res, 404, { error: "no task" }); return; }
-    readBody(req, function(o){
+    readBody(req, async function(o){
       const STAGES = ["todo", "plan", "exec", "review", "done"];
       const scopeChanged = (typeof o.title === "string" && o.title !== t.title) || (typeof o.desc === "string" && o.desc !== t.desc);
       const enteringExec = o.stage === "exec" && t.stage !== "exec";
@@ -208,7 +212,15 @@ function handleTasks(req, res, url) {
 
       // Auto-generate L1 acceptance when entering exec without a plan
       if (enteringExec && !t.acc) {
-        const auto = detectDefaultAcceptance(ROOTS[0]);
+        // Try to detect from session's project directory
+        let projDir = ROOTS[0];
+        if (t.sessionID) {
+          try {
+            const sess = await fetch(ACC_BACKEND + "/session/" + t.sessionID).then(r => r.json());
+            if (sess && sess.directory) projDir = sess.directory;
+          } catch (e) {}
+        }
+        const auto = detectDefaultAcceptance(projDir);
         if (auto) {
           t.acc = auto;
           if (t.acc.rounds) {
@@ -216,7 +228,18 @@ function handleTasks(req, res, url) {
               if (t.acc.rounds[ri].cmd) registerRoundHash(parts[1], ri, t.acc.rounds[ri].cmd);
             }
           }
-          console.log("[auto-acceptance] task " + parts[1] + " generated " + t.acc.rounds.length + " rounds");
+          console.log("[auto-acceptance] task " + parts[1] + " generated " + t.acc.rounds.length + " rounds from " + projDir);
+        } else {
+          // Fallback: always create a basic acceptance plan
+          t.acc = {
+            rounds: [
+              { name: "workspace check", cmd: IS_WIN ? "echo ok" : "echo ok", intervalMin: 2, maxRetry: 2 },
+              { mode: "human", name: "human review" }
+            ],
+            auto: true, fallback: true
+          };
+          registerRoundHash(parts[1], 0, t.acc.rounds[0].cmd);
+          console.log("[auto-acceptance] task " + parts[1] + " fallback plan (no project detected)");
         }
       }
 
@@ -727,3 +750,98 @@ setInterval(async () => {
     }
   }
 }, 30000).unref();
+
+// ===== Server-side autoStage: exec ↔ review transitions without browser =====
+setInterval(async () => {
+  for (const id of Object.keys(tasks)) {
+    const t = tasks[id];
+    if (!t.sessionID) continue;
+    try {
+      const st = await fetch(ACC_BACKEND + "/session/status").then(r => r.json()).catch(() => ({}));
+      const busy = st && st[t.sessionID] && st[t.sessionID].type === "busy";
+      const acc = t.acc;
+
+      // Ensure exec tasks always have acceptance (retroactive fix)
+      if (t.stage === "exec" && !acc) {
+        let projDir = ROOTS[0];
+        try {
+          const sess = await fetch(ACC_BACKEND + "/session/" + t.sessionID).then(r => r.json());
+          if (sess && sess.directory) projDir = sess.directory;
+        } catch (e) {}
+        const auto = detectDefaultAcceptance(projDir);
+        if (auto) {
+          t.acc = auto;
+          if (t.acc.rounds) {
+            for (let ri = 0; ri < t.acc.rounds.length; ri++) {
+              if (t.acc.rounds[ri].cmd) registerRoundHash(id, ri, t.acc.rounds[ri].cmd);
+            }
+          }
+        } else {
+          t.acc = { rounds: [{ name: "workspace check", cmd: "echo ok", intervalMin: 2, maxRetry: 2 }, { mode: "human", name: "human review" }], auto: true, fallback: true };
+          registerRoundHash(id, 0, t.acc.rounds[0].cmd);
+        }
+        saveTasks();
+        console.log("[autoStage] task " + id + " retroactive acceptance added");
+      }
+
+      // todo → exec: agent started working OR already finished (session has responses)
+      if (t.stage === "todo") {
+        let hasResponse = false;
+        try {
+          const msgs = await fetch(ACC_BACKEND + "/session/" + t.sessionID + "/message?limit=1").then(r => r.json());
+          hasResponse = msgs && msgs.length && (msgs[0].info || {}).role === "assistant";
+        } catch (e) {}
+        if (busy || hasResponse) {
+          t.stage = "exec";
+          t.updated = Date.now();
+          // Auto-generate acceptance if none
+          if (!t.acc) {
+            let projDir = ROOTS[0];
+            try {
+              const sess = await fetch(ACC_BACKEND + "/session/" + t.sessionID).then(r => r.json());
+              if (sess && sess.directory) projDir = sess.directory;
+            } catch (e) {}
+            const auto = detectDefaultAcceptance(projDir);
+            if (auto) {
+              t.acc = auto;
+              if (t.acc.rounds) {
+                for (let ri = 0; ri < t.acc.rounds.length; ri++) {
+                  if (t.acc.rounds[ri].cmd) registerRoundHash(id, ri, t.acc.rounds[ri].cmd);
+                }
+              }
+            } else {
+              t.acc = { rounds: [{ name: "workspace check", cmd: "echo ok", intervalMin: 2, maxRetry: 2 }, { mode: "human", name: "human review" }], auto: true, fallback: true };
+              registerRoundHash(id, 0, t.acc.rounds[0].cmd);
+            }
+          }
+          saveTasks();
+          console.log("[autoStage] task " + id + " todo → exec (" + (busy ? "busy" : "has responses") + ")");
+        }
+      }
+
+      // exec → review: session idle + (no acc OR acc done/waiting) + has assistant response
+      if (t.stage === "exec" && !busy) {
+        const canAdvance = !acc || acc.done || acc.status === "waiting_human" || acc.status === "review_agent";
+        if (canAdvance) {
+          const msgs = await fetch(ACC_BACKEND + "/session/" + t.sessionID + "/message?limit=1").then(r => r.json()).catch(() => []);
+          const lastIsAssistant = msgs && msgs.length && (msgs[0].info || {}).role === "assistant";
+          if (lastIsAssistant) {
+            t.stage = "review";
+            t.updated = Date.now();
+            saveTasks();
+            console.log("[autoStage] task " + id + " exec → review (idle + " + (acc ? "acc " + acc.status : "no acc") + ")");
+          }
+        }
+      }
+
+      // review → exec: session is running again
+      if (t.stage === "review" && busy) {
+        t.stage = "exec";
+        t.updated = Date.now();
+        if (acc) { acc.status = ""; }
+        saveTasks();
+        console.log("[autoStage] task " + id + " review → exec (session busy)");
+      }
+    } catch (e) {}
+  }
+}, 15000).unref();
