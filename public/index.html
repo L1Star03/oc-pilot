@@ -2392,6 +2392,27 @@ function renderGraphView(){
     for (wi2 = 0; wi2 < ws.length; wi2++) svgEdge("w" + wi2, "merge", mergeState === "run" || activityOf(ws[wi2].sessionID) === "run");
   }
 
+  // === SVG acceptance chain (part of the overall flow) ===
+  var chainY = 170 + svgRows * 95 - 10;
+  var chain = [];
+  if (accR.length) {
+    var chainStep = 145;
+    for (wi2 = 0; wi2 < accR.length; wi2++) {
+      var st = wi2 < (t.acc.cur || 0) || t.acc.done ? "done" : (wi2 === (t.acc.cur || 0) ? (t.acc.tampered ? "warn" : "run") : "");
+      var nm = (accR[wi2].mode === "human" ? "◎ " : "R" + (wi2 + 1) + " ") + trunc(accR[wi2].name || "", 12);
+      svgNode("a" + wi2, 170 + wi2 * chainStep, chainY, 130, 48, nm, "", st);
+      chain.push("a" + wi2);
+    }
+    svgNode("fin", 170 + accR.length * chainStep, chainY, 80, 48, "✓ DONE", "", t.stage === "done" ? "done" : "");
+    chain.push("fin");
+  } else {
+    svgNode("a0", 170, chainY, 130, 48, "◎ 验收", "", t.stage === "review" ? "run" : "");
+    svgNode("fin", 330, chainY, 80, 48, "✓ DONE", "", t.stage === "done" ? "done" : "");
+    chain = ["a0", "fin"];
+  }
+  svgVEdge("main", chain[0], mainState === "run");
+  for (wi2 = 0; wi2 < chain.length - 1; wi2++) svgEdge(chain[wi2], chain[wi2 + 1], false, true);
+
   function curTodo(sid){
     var tl = S.sessions[sid] && S.sessions[sid]._todo;
     if (!tl) return "";
@@ -2400,8 +2421,8 @@ function renderGraphView(){
   }
 
   var html = '<div class="flowpage">';
-  html += '<div style="padding:10px 12px 0;font-size:11px;color:var(--mut);letter-spacing:1px">执行流程 · 点节点或卡片跳转对话</div>';
-  var flowH = 170 + svgRows * 95;
+  html += '<div style="padding:10px 12px 0;font-size:11px;color:var(--mut);letter-spacing:1px">执行流程 · 点节点或卡片跳转</div>';
+  var flowH = 170 + svgRows * 95 + (accR.length || 1) * 60 + 10;
   html += '<svg viewBox="0 0 ' + svgW + ' ' + flowH + '" style="width:100%;max-width:900px;display:block;margin:0 auto">' + svgParts.join("") + '</svg>';
   html += '<h4>Agent 详情</h4>';
 
@@ -2449,17 +2470,33 @@ function renderGraphView(){
       refreshDetail(true);
     };
   }
-  var steps = dv.querySelectorAll(".fstep[data-facc]");
-  for (var si = 0; si < steps.length; si++) {
-    steps[si].onclick = function() {
-      S.curTab = "acc";
-      refreshDetail._sig = "";
-      refreshDetail._lastTab = null;
-      var tb = document.querySelectorAll("#tabs button");
-      for (var j3 = 0; j3 < tb.length; j3++) tb[j3].className = tb[j3].getAttribute("data-t") === "acc" ? "on" : "";
-      refreshDetail(true);
-    };
-  }
+
+  // SVG node click handlers
+  var svg = dv.querySelector("svg");
+  if (svg) svg.addEventListener("click", function(e){
+    var g = e.target.closest ? e.target.closest("g.gnode") : null;
+    if (!g) return;
+    var fo = g.querySelector("foreignObject div");
+    var txt = fo ? fo.textContent : "";
+    var sid = (S.curTask.workers || []).map(function(w){ return w.sessionID; }).concat([S.curTask.sessionID, S.curTask.mergeSid]).filter(Boolean);
+    var target = null;
+    for (var k2 = 0; k2 < sid.length; k2++) {
+      if (sid[k2] && S.sessions[sid[k2]] && txt.indexOf("◈") === 0) {
+        var roleMatch = (S.sessions[sid[k2]].title || "").split("#").pop().trim().slice(0, 6);
+        if (txt.indexOf(roleMatch) >= 0) { target = sid[k2]; break; }
+      }
+    }
+    if (txt.indexOf("⌘ 主线") >= 0 && S.curTask.sessionID) { S.viewSid = null; S.curTab = "chat"; }
+    else if (txt.indexOf("⌘ 汇总") >= 0 && S.curTask.mergeSid) { S.viewSid = S.curTask.mergeSid; S.curTab = "chat"; }
+    else if (target) { S.viewSid = target; S.curTab = "chat"; }
+    else if (/^[R\d]|◎|✓ DONE/.test(txt) && S.curTask.acc) S.curTab = "acc";
+    else return;
+    refreshDetail._sig = "";
+    refreshDetail._lastTab = null;
+    var tb = document.querySelectorAll("#tabs button");
+    for (var j2 = 0; j2 < tb.length; j2++) tb[j2].className = tb[j2].getAttribute("data-t") === S.curTab ? "on" : "";
+    refreshDetail(true);
+  });
 }
 
 function renderAgentsOverview(){
