@@ -494,8 +494,12 @@ const server = http.createServer((req, res) => {
           let resetEpoch = 0;
           if (reset) resetEpoch = Date.parse(reset + "+08:00");
           const t = ts ? Date.parse(ts) : 0;
-          if (t && Date.now() - t > 6 * 3600 * 1000) continue;
-          if (resetEpoch && Date.now() > resetEpoch) continue;
+          // With reset time: keep until reset point. Without: expire after 30 minutes
+          if (resetEpoch) {
+            if (Date.now() > resetEpoch) continue;
+          } else {
+            if (t && Date.now() - t > 30 * 60 * 1000) continue;
+          }
           errs.push({ t, provider: prov, model: model, session: sess, message: errm.slice(0, 200), reset, resetEpoch });
         } catch (e2) {}
       }
