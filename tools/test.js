@@ -78,7 +78,7 @@ function record(name, ok, extra) {
   });
   record('T5 验收流水线渲染', t5 >= 3, 'steps=' + t5);
 
-  // T6 OBS page
+  // T6 quota/usage page
   const t6 = await page.evaluate(async () => {
     const btn = document.getElementById('statsBtn');
     if (!btn) return { ok: false, kpis: 0, missing: true };
@@ -87,12 +87,12 @@ function record(name, ok, extra) {
     const el = document.getElementById('statsView');
     if (!el) return { ok: false, kpis: 0, missing: true };
     const shown = getComputedStyle(el).display !== 'none';
-    const ok = shown && (el.querySelectorAll('.obkpi').length === 4 || el.textContent.indexOf('无法获取') >= 0 || el.textContent.indexOf('统计') >= 0);
+    const hasContent = el.textContent.indexOf('限额') >= 0 || el.textContent.indexOf('用量') >= 0 || el.textContent.indexOf('无法获取') >= 0 || el.textContent.indexOf('加载') >= 0;
     const ob = document.getElementById('obclose');
-    if (ob) ob.click(); else closeStats();
-    return { ok, kpis: el.querySelectorAll('.obkpi').length };
+    if (ob) ob.click(); else if (typeof closeStats === 'function') closeStats();
+    return { ok: shown && hasContent, kpis: 1 };
   });
-  record('T6 OBS 统计页', t6.ok, 'kpis=' + t6.kpis + (t6.missing ? ' (statsBtn missing)' : ''));
+  record('T6 限额&用量页', t6.ok, 'ok=' + t6.ok + (t6.missing ? ' (statsBtn missing)' : ''));
 
   // T7 settings dialog + effort options (backend-independent)
   const t7 = await page.evaluate(async () => {
