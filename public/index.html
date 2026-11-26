@@ -349,6 +349,47 @@ main{flex:1;overflow:hidden;display:flex}
 .gnode{cursor:pointer}
 .gnode text{fill:var(--tx);font:600 13px "Cascadia Code",Consolas,monospace}
 .gnode .gsub{fill:var(--mut);font:10.5px "Cascadia Code",Consolas,monospace}
+.flowpage{padding:10px 12px;overflow-y:auto;flex:1}
+.flowpage h4{font-size:11px;color:var(--mut);letter-spacing:2px;margin:14px 0 8px}
+.frow{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap}
+.fcard{background:var(--card-bg);border:1px solid var(--ln);border-radius:8px;padding:10px 12px;flex:1;min-width:220px;max-width:340px;cursor:pointer;position:relative}
+.fcard:active{opacity:.7}
+.fcard.run{border-color:var(--cy);box-shadow:0 0 8px rgba(65,164,255,.15)}
+.fcard.done{border-color:var(--ok)}
+.fcard.warn{border-color:var(--wn)}
+.fcard .fh{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.fcard .fi{font-size:14px}
+.fcard .fn{font-weight:700;font-size:13px;color:var(--cy);flex:1}
+.fcard .fs{font-size:10px;padding:1px 7px;border-radius:99px;flex:0 0 auto}
+.fcard .fs.run{background:rgba(65,164,255,.15);color:var(--cy);animation:pulse 1.3s infinite}
+.fcard .fs.idle{background:rgba(78,201,164,.12);color:var(--ok)}
+.fcard .fs.stuck{background:rgba(215,186,99,.15);color:var(--wn)}
+.fcard .fs.none{background:var(--chip-bg);color:var(--mut)}
+.fcard .ftodo{font-size:12px;color:var(--tx);line-height:1.5;margin-bottom:4px;padding:4px 8px;background:var(--code-bg);border-radius:4px}
+.fcard .ftodo .label{color:var(--mut);font-size:10px}
+.fcard .ftool{font-size:11px;color:var(--dim);margin-bottom:4px;padding:3px 8px;background:var(--bar-bg);border-radius:4px;border:1px dashed var(--ln)}
+.fcard .ftool b{color:var(--cy)}
+.fcard .fout{font-size:10px;color:var(--mut);padding:3px 8px;background:var(--code-bg);border-radius:4px;max-height:48px;overflow:hidden;font-family:Consolas,monospace;word-break:break-all}
+.fcard .fmeta{font-size:10px;color:var(--mut);margin-top:6px;display:flex;gap:8px;flex-wrap:wrap}
+.fcard .fprog{height:4px;background:var(--ln);border-radius:99px;margin-top:6px;overflow:hidden}
+.fcard .fprog i{display:block;height:100%;background:linear-gradient(90deg,var(--cyb),var(--ok));border-radius:99px}
+.fconn{display:flex;justify-content:center;align-items:center;padding:6px 0;font-size:16px;color:var(--ln2)}
+.fconn.h{padding:6px 0}
+.fchain{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px 0}
+.fstep{display:flex;align-items:center;gap:4px;padding:6px 10px;border:1px solid var(--ln);border-radius:6px;font-size:12px;cursor:pointer}
+.fstep:active{opacity:.7}
+.fstep.pass{border-color:var(--ok);color:var(--ok);background:rgba(78,201,164,.08)}
+.fstep.cur{border-color:var(--cy);color:var(--cy);background:rgba(65,164,255,.1);animation:pulse 1.3s infinite}
+.fstep.fail{border-color:var(--er);color:var(--er);background:rgba(241,76,76,.08)}
+.fstep.human{border-style:dashed}
+.fsep{color:var(--ln2);font-size:14px}
+.fdetail{margin-top:12px;padding:10px 14px;background:var(--card-bg);border:1px solid var(--ln);border-radius:8px;font-size:12px}
+.fdetail .dl{display:flex;gap:8px;padding:4px 0;align-items:baseline}
+.fdetail .dk{color:var(--mut);font-size:10.5px;flex:0 0 110px;letter-spacing:1px}
+.fdetail .dv{color:var(--tx);flex:1;word-break:break-all}
+.fdetail .dv.ok{color:var(--ok)}
+.fdetail .dv.err{color:var(--er)}
+.fdetail .dv.warn{color:var(--wn)}
 .gdotp{animation:pulse 1.3s infinite}
 .gedge{fill:none;stroke:var(--mut);stroke-width:1.2;stroke-dasharray:5 6}
 .gedge.solid{stroke-dasharray:none;stroke:var(--ln2)}
@@ -2177,112 +2218,179 @@ function renderGraphView(){
   var ws = (t.workers || []).slice();
   if (!ws.length && t.sessionID) {
     Object.keys(S.sessions).forEach(function(k){
-      if (S.sessions[k].parentID === t.sessionID) ws.push({ sessionID: k, role: ((S.sessions[k].title||"").split("#").pop().trim().slice(0,12)) || "子AGENT" });
+      if (S.sessions[k].parentID === t.sessionID) ws.push({ sessionID: k, role: ((S.sessions[k].title||"").split("#").pop().trim().slice(0,20)) || "子AGENT" });
     });
   }
   var accR = (t.acc && t.acc.rounds) || [];
-  var sig = JSON.stringify([t.stage, t.sessionID, t.merged, t.mergeSid || "", ws.map(function(w){ return [w.sessionID, activityOf(w.sessionID) || ""]; }), activityOf(t.sessionID || "") || "", accR.length, t.acc ? [t.acc.cur || 0, t.acc.done || 0, t.acc.status || "", t.acc.pause || 0] : null]);
+  var sig = JSON.stringify([t.stage, t.sessionID, t.merged, t.mergeSid || "", ws.map(function(w){ return [w.sessionID, activityOf(w.sessionID) || ""]; }), activityOf(t.sessionID || "") || "", accR.length, t.acc ? [t.acc.cur || 0, t.acc.done || 0, t.acc.status || "", t.acc.tampered || 0, t.acc.reviewResult ? t.acc.reviewResult.approved : null] : null, S.liveTools ? Object.keys(S.liveTools).length : 0]);
   if (sig === renderGraphView._sig) return;
   renderGraphView._sig = sig;
-  var rows = Math.max(1, ws.length);
-  var H = 160 + rows * 88 + (accR.length ? 100 : 0) + 20;
-  var W = 820;
-  var parts = [];
-  function escx(s){ return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+  function escx(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
   function trunc(s, n){ s = String(s || ""); return s.length > n ? s.slice(0, n) + "…" : s; }
-  function curTodo(sid){
-    var tl = S.sessions[sid] && S.sessions[sid]._todo;
-    if (!tl) return "";
-    for (var q = 0; q < tl.length; q++) if (tl[q].status === "in_progress") return "🎯 " + tl[q].content;
-    return "";
-  }
-  var nodes = {};
-  function node(id, x, y, w, h, title, sub, state, attr){
-    var on = state === "run";
-    parts.push('<g class="gnode' + (on ? " on" : "") + (attr && attr.cls ? " " + attr.cls : "") + '" transform="translate(' + x + ',' + y + ')"' + (attr && attr.tab ? ' data-gtab="' + attr.tab + '"' : "") + '>');
-    parts.push('<rect width="' + w + '" height="' + h + '" rx="6"/>');
-    var dotc = state === "run" ? "var(--cy)" : (state === "done" ? "var(--ok)" : (state === "warn" ? "var(--wn)" : "var(--mut)"));
-    parts.push('<circle class="' + (on ? "gdotp" : "") + '" cx="13" cy="15" r="4" fill="' + dotc + '"/>');
-    parts.push('<text x="24" y="19">' + escx(trunc(title, Math.floor(w / 10))) + '</text>');
-    if (sub) parts.push('<text class="gsub" x="8" y="' + (h - 9) + '">' + escx(trunc(sub, Math.floor(w / 8.2))) + '</text>');
-    parts.push('</g>');
-    nodes[id] = { x: x, y: y, w: w, h: h };
-  }
-  function edge(aId, bId, on, solid){
-    var a = nodes[aId], b = nodes[bId];
-    var x1 = a.x + a.w, y1 = a.y + a.h / 2, x2 = b.x, y2 = b.y + b.h / 2;
-    var id = "ge" + parts.length;
-    var d = "M" + x1 + " " + y1 + " C" + (x1 + 40) + " " + y1 + " " + (x2 - 40) + " " + y2 + " " + x2 + " " + y2;
-    parts.push('<path id="' + id + '" class="gedge' + (on ? " on" : "") + (solid ? " solid" : "") + '" d="' + d + '"/>');
-    if (on) parts.push('<circle r="3" fill="var(--cy)"><animateMotion dur="1.6s" repeatCount="indefinite"><mpath href="#' + id + '"/></animateMotion></circle>');
-  }
-  function vedge(aId, bId, on){
-    var a = nodes[aId], b = nodes[bId];
-    var x1 = a.x + a.w / 2, y1 = a.y + a.h, x2 = b.x + b.w / 2, y2 = b.y;
-    var id = "ge" + parts.length;
-    var d = "M" + x1 + " " + y1 + " C" + x1 + " " + (y1 + 40) + " " + x2 + " " + (y2 - 40) + " " + x2 + " " + y2;
-    parts.push('<path id="' + id + '" class="gedge' + (on ? " on" : "") + ' solid" d="' + d + '"/>');
-    if (on) parts.push('<circle r="3" fill="var(--cy)"><animateMotion dur="1.6s" repeatCount="indefinite"><mpath href="#' + id + '"/></animateMotion></circle>');
-  }
-  var mainCy = 90 + (rows * 88) / 2;
-  node("task", 8, mainCy - 28, 122, 56, FLOW[t.stage].icon + " " + FLOW[t.stage].name, trunc(t.title, 13), t.stage === "done" ? "done" : "");
-  var mainState = t.sessionID ? activityOf(t.sessionID) : "";
-  node("main", 175, mainCy - 33, 152, 66, "⌘ 主线", t.sessionID ? (curTodo(t.sessionID) || modelShort(S.workerInfo[t.sessionID] && S.workerInfo[t.sessionID].model)) : "未创建", mainState);
-  edge("task", "main", mainState === "run");
-  for (var i = 0; i < ws.length; i++) {
-    var wid = "w" + i;
-    var wy = mainCy - (rows * 88) / 2 + i * 88 + 16;
-    var wst = activityOf(ws[i].sessionID);
-    node(wid, 372, wy, 152, 56, "◈ " + ws[i].role, curTodo(ws[i].sessionID), wst);
-    edge("main", wid, wst === "run" || mainState === "run");
-  }
-  var hasMerge = !!t.mergeSid;
-  var mergeState = hasMerge ? activityOf(t.mergeSid) : (t.merged ? "done" : "");
-  if (hasMerge || (ws.length && !t.merged)) {
-    node("merge", 580, mainCy - 30, 138, 60, "⌘ 汇总" + (t.merged ? " ✓" : ""), hasMerge ? curTodo(t.mergeSid) : "分支完成后自动触发", mergeState);
-    for (i = 0; i < ws.length; i++) edge("w" + i, "merge", mergeState === "run" || activityOf(ws[i].sessionID) === "run");
-  }
-  var chainY = H - 92;
-  var chain = [];
-  if (accR.length) {
-    for (i = 0; i < accR.length; i++) {
-      var st = i < (t.acc.cur || 0) || t.acc.done ? "done" : (i === (t.acc.cur || 0) ? (t.acc.pause ? "warn" : "run") : "");
-      var nm = (accR[i].mode === "human" ? "◎ " : "R" + (i + 1) + " ") + (accR[i].name || "");
-      node("a" + i, 175 + i * 122, chainY, 108, 48, nm, "", st);
-      chain.push("a" + i);
+
+  function agentCard(sid, label, icon, opts) {
+    opts = opts || {};
+    var act = sid ? activityOf(sid) : "";
+    var cls = act === "run" ? "run" : (act === "idle" ? "done" : (act === "recent" ? "warn" : ""));
+    var stTxt = act === "run" ? "● RUN" : (act === "idle" ? "○ IDLE" : (act ? "◐" : "未创建"));
+    if (act === "run" && S.stuckSince[sid] && Date.now() - S.stuckSince[sid] > 180000) { stTxt = "⚠ STUCK"; cls = "warn"; }
+
+    var sess = sid ? S.sessions[sid] : null;
+    var tl = sess && sess._todo;
+    var curTodo = "";
+    var done = 0, total = 0;
+    if (tl && tl.length) {
+      total = tl.length;
+      done = tl.filter(function(x){ return x.status === "completed"; }).length;
+      for (var q = 0; q < tl.length; q++) if (tl[q].status === "in_progress") { curTodo = tl[q].content; break; }
     }
-    node("fin", 175 + accR.length * 122, chainY, 86, 48, "✓ 完成", "", t.stage === "done" ? "done" : "");
-    chain.push("fin");
-  } else {
-    node("a0", 175, chainY, 108, 48, "◎ 验收", "", t.stage === "review" ? "run" : "");
-    node("fin", 320, chainY, 86, 48, "✓ 完成", "", t.stage === "done" ? "done" : "");
-    chain = ["a0", "fin"];
+    var lt = sid ? (S.liveTools[sid] || []) : [];
+    var tool = "";
+    if (lt.length) tool = lt[0].tool + ": " + (lt[0].title || "…");
+    var wi = sid ? (S.workerInfo[sid] || {}) : {};
+    var model = modelShort(wi.model);
+    var lastOut = wi.out || "";
+    var since = wi.seen ? fmtRel(wi.seen) : (sess && sess.time ? fmtRel(sess.time.updated) : "");
+    var runningTool = act === "run" ? wi.running : "";
+
+    var h = '<div class="fcard ' + cls + '" data-fsid="' + escx(sid || "") + '" data-frole="' + escx(opts.tab || "chat") + '">';
+    h += '<div class="fh"><span class="fi">' + icon + '</span><span class="fn">' + escx(label) + '</span>';
+    h += '<span class="fs ' + (cls || "none") + '">' + stTxt + '</span></div>';
+    if (curTodo) h += '<div class="ftodo"><span class="label">🎯 </span>' + escx(trunc(curTodo, 60)) + '</div>';
+    else if (opts.sub) h += '<div class="ftodo"><span class="label">📋 </span>' + escx(trunc(opts.sub, 60)) + '</div>';
+    if (runningTool) h += '<div class="ftool">⚙ <b>' + escx(runningTool) + '</b></div>';
+    else if (tool) h += '<div class="ftool">⚙ <b>' + escx(trunc(tool, 50)) + '</b></div>';
+    if (total > 0) {
+      var pct = Math.round(done / total * 100);
+      h += '<div class="fprog"><i style="width:' + pct + '%"></i></div>';
+    }
+    if (lastOut && act === "run") h += '<div class="fout">' + escx(trunc(lastOut, 100)) + '</div>';
+    h += '<div class="fmeta">';
+    if (total > 0) h += '<span>📋 ' + done + '/' + total + '</span>';
+    if (model) h += '<span>🤖 ' + escx(model) + '</span>';
+    if (since) h += '<span>⏱ ' + since + '</span>';
+    h += '</div></div>';
+    return h;
   }
-  vedge("main", chain[0], mainState === "run");
-  for (i = 0; i < chain.length - 1; i++) edge(chain[i], chain[i + 1], false, true);
-  var html = '<div style="padding:10px 12px 0;font-size:11px;color:var(--mut);letter-spacing:1px">执行流程图 · 实线=固定流转 · 虚线=并行派发/汇总 · 流动光点=活跃通道 · 点节点可跳转</div>' +
-    '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:900px;display:block;margin:0 auto">' + parts.join("") + '</svg>';
+
+  var html = '<div class="flowpage">';
+  html += '<h4>执行流程 · 点卡片跳转</h4>';
+
+  // Main agent
+  html += '<div class="frow">';
+  html += agentCard(t.sessionID, "⌘ 主线 agent", "⌘", { tab: "chat", sub: t.title });
+  if (ws.length) {
+    html += agentCard(t.mergeSid, "⌘ 汇总 agent", "⌘", { tab: "chat", sub: t.merged ? "已完成" : "等待分支完成" });
+  }
+  html += '</div>';
+
+  // Workers
+  if (ws.length) {
+    html += '<div class="fconn">▼ 分工 agent</div>';
+    html += '<div class="frow">';
+    for (var i = 0; i < ws.length; i++) {
+      html += agentCard(ws[i].sessionID, "◈ " + ws[i].role, "◈", { tab: "chat" });
+    }
+    html += '</div>';
+  }
+
+  // Acceptance chain
+  if (accR.length) {
+    html += '<h4>验收链</h4>';
+    html += '<div class="fchain">';
+    for (var j = 0; j < accR.length; j++) {
+      var st = j < (t.acc.cur || 0) || t.acc.done ? "pass" : (j === (t.acc.cur || 0) ? (t.acc.tampered ? "fail" : "cur") : "");
+      var nm = (accR[j].mode === "human" ? "◎ " : "") + (accR[j].name || "R" + (j+1));
+      html += '<div class="fstep ' + st + (accR[j].mode === "human" ? " human" : "") + '" data-facc="' + j + '">' + escx(nm) + '</div>';
+      if (j < accR.length - 1) html += '<span class="fsep">──</span>';
+    }
+    if (t.acc.done) html += '<span class="fsep">──</span><div class="fstep pass">✓ DONE</div>';
+    html += '</div>';
+  }
+
+  // Detail section
+  html += '<h4>当前状态</h4>';
+  html += '<div class="fdetail">';
+  html += '<div class="dl"><span class="dk">STAGE</span><span class="dv">' + FLOW[t.stage].icon + ' ' + FLOW[t.stage].name + '</span></div>';
+  if (t.acc && t.acc.cur !== undefined && accR.length) {
+    var curR = accR[t.acc.cur] || accR[accR.length - 1];
+    html += '<div class="dl"><span class="dk">当前轮</span><span class="dv">' + escx((curR.name || "R" + (t.acc.cur+1))) + ' · 第' + ((t.acc.attempts||0)+1) + '次尝试</span></div>';
+  }
+  if (t.acc && t.acc.lastPassCommit) {
+    html += '<div class="dl"><span class="dk">绑定 COMMIT</span><span class="dv ok">@' + escx(t.acc.lastPassCommit.slice(0,7)) + '</span></div>';
+  }
+  if (t.acc && t.acc.reviewResult) {
+    var rr = t.acc.reviewResult;
+    html += '<div class="dl"><span class="dk">审查 AGENT</span><span class="dv ' + (rr.approved ? "ok" : "err") + '">' + (rr.approved ? "✓ 通过" : "✗ 驳回") + ' — ' + escx(trunc(rr.reason, 120)) + '</span></div>';
+  } else if (t.acc && t.acc.status === "review_agent") {
+    html += '<div class="dl"><span class="dk">审查 AGENT</span><span class="dv warn">◈ 审核中…</span></div>';
+  }
+  if (t.acc && t.acc.governance && t.acc.governance.failures) {
+    html += '<div class="dl"><span class="dk">治理门禁</span><span class="dv err">';
+    for (var gf = 0; gf < t.acc.governance.failures.length; gf++) {
+      var f = t.acc.governance.failures[gf];
+      html += '▸ ' + escx(f.gate) + ': ' + escx(f.detail) + '<br>';
+    }
+    html += '</span></div>';
+  }
+  if (t.acc && t.acc.tampered) {
+    html += '<div class="dl"><span class="dk">脚本完整性</span><span class="dv err">⚠ 篡改检测触发（R' + (t.acc.tampered.round+1) + '）</span></div>';
+  }
+  if (t.acc && t.acc.scopeInvalidated) {
+    html += '<div class="dl"><span class="dk">范围变更</span><span class="dv warn">↺ ' + t.acc.scopeInvalidated + ' 次</span></div>';
+  }
+  html += '</div>';
+
+  // Governance status
+  if (t.sessionID) {
+    html += '<h4>治理状态</h4>';
+    html += '<div class="fdetail">';
+    var todos = (S.sessions[t.sessionID] || {})._todo || [];
+    var pending = todos.filter(function(x){ return x.status === "pending" || x.status === "in_progress"; });
+    html += '<div class="dl"><span class="dk">TODO 收敛</span><span class="dv ' + (pending.length === 0 ? "ok" : "warn") + '">' + (todos.length === 0 ? "无 todo" : pending.length + "/" + todos.length + " 未完成") + '</span></div>';
+    var runSecs = 0;
+    if (act === "run" && S.runStart[t.sessionID]) runSecs = Math.round((Date.now() - S.runStart[t.sessionID]) / 1000);
+    if (runSecs > 0) html += '<div class="dl"><span class="dk">运行时长</span><span class="dv">⏱ ' + fmtDur(runSecs) + '</span></div>';
+    html += '</div>';
+  }
+
+  html += '</div>';
+
   dv.innerHTML = html;
-  var svg = dv.querySelector("svg");
-  if (svg) svg.addEventListener("click", function(e){
-    var g = e.target.closest ? e.target.closest("g.gnode") : null;
-    if (!g) return;
-    var sid = (S.curTask.workers || []).map(function(w){ return w.sessionID; }).concat([S.curTask.sessionID, S.curTask.mergeSid]).filter(Boolean);
-    var label = g.querySelector("text");
-    var txt = label ? label.textContent : "";
-    var target = null;
-    for (var k2 = 0; k2 < sid.length; k2++) { if (sid[k2] && S.sessions[sid[k2]] && txt.indexOf((S.sessions[sid[k2]].title || "").split("#").pop().trim().slice(0, 6)) >= 0 && txt.indexOf("◈") === 0) target = sid[k2]; }
-    if (txt.indexOf("⌘ 主线") === 0 && S.curTask.sessionID) { S.viewSid = null; S.curTab = "chat"; }
-    else if (txt.indexOf("⌘ 汇总") === 0 && S.curTask.mergeSid) { S.viewSid = S.curTask.mergeSid; S.curTab = "chat"; }
-    else if (target) { S.viewSid = target; S.curTab = "chat"; }
-    else if (/^[R\d]|◎/.test(txt) && S.curTask.acc) S.curTab = "acc";
-    else if (txt.indexOf("◎ 验收") === 0) S.curTab = "acc";
-    else return;
-    refreshDetail._sig = ""; refreshDetail._lastTab = null;
-    var tb = document.querySelectorAll("#tabs button");
-    for (var j2 = 0; j2 < tb.length; j2++) tb[j2].className = tb[j2].getAttribute("data-t") === S.curTab ? "on" : "";
-    refreshDetail(true);
-  });
+
+  // Click handlers
+  var cards = dv.querySelectorAll(".fcard");
+  for (var ci = 0; ci < cards.length; ci++) {
+    cards[ci].onclick = function() {
+      var sid2 = this.getAttribute("data-fsid");
+      var role = this.getAttribute("data-frole");
+      if (sid2 && sid2 !== S.curTask.sessionID && sid2 !== S.curTask.mergeSid) {
+        S.viewSid = sid2;
+      } else if (sid2 === S.curTask.mergeSid) {
+        S.viewSid = S.curTask.mergeSid;
+      } else {
+        S.viewSid = null;
+      }
+      S.curTab = "chat";
+      refreshDetail._sig = "";
+      refreshDetail._lastTab = null;
+      var tb = document.querySelectorAll("#tabs button");
+      for (var j2 = 0; j2 < tb.length; j2++) tb[j2].className = tb[j2].getAttribute("data-t") === "chat" ? "on" : "";
+      refreshDetail(true);
+    };
+  }
+  var steps = dv.querySelectorAll(".fstep[data-facc]");
+  for (var si = 0; si < steps.length; si++) {
+    steps[si].onclick = function() {
+      S.curTab = "acc";
+      refreshDetail._sig = "";
+      refreshDetail._lastTab = null;
+      var tb = document.querySelectorAll("#tabs button");
+      for (var j3 = 0; j3 < tb.length; j3++) tb[j3].className = tb[j3].getAttribute("data-t") === "acc" ? "on" : "";
+      refreshDetail(true);
+    };
+  }
 }
 
 function renderAgentsOverview(){

@@ -63,7 +63,7 @@ function record(name, ok, extra) {
       btn.click();
       await new Promise(r => setTimeout(r, 420));
       const dv = document.getElementById('dview');
-      const cnt = { chat: dv.querySelectorAll('.msg,.empty').length, graph: dv.querySelectorAll('.gnode').length, todo: dv.querySelectorAll('.todo,.empty').length, acc: dv.querySelectorAll('.accstep,.empty').length }[tab];
+      const cnt = { chat: dv.querySelectorAll('.msg,.empty').length, graph: dv.querySelectorAll('.fcard,.fstep,.empty').length, todo: dv.querySelectorAll('.todo,.empty').length, acc: dv.querySelectorAll('.accstep,.fstep,.empty').length }[tab];
       seq.push(tab + ':' + (cnt > 0 ? 'ok' : 'empty'));
     }
     return { seq, allOk: seq.every(s => /:ok$/.test(s)) };
