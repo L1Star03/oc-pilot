@@ -2336,39 +2336,80 @@ function renderGraphView(){
   }
   var svgRows = Math.max(1, ws.length);
   var svgH = 160 + svgRows * 88 + (accR.length ? 100 : 0) + 20;
-  var svgW = 820;
+  var svgW = 880;
   var mainCy = 90 + (svgRows * 88) / 2;
-  svgNode("task", 8, mainCy - 28, 122, 56, FLOW[t.stage].icon + " " + FLOW[t.stage].name, trunc(t.title, 13), t.stage === "done" ? "done" : "");
+  svgNode("task", 8, mainCy - 28, 140, 56, FLOW[t.stage].icon + " " + FLOW[t.stage].name, trunc(t.title, 15), t.stage === "done" ? "done" : "");
   var mainState = t.sessionID ? activityOf(t.sessionID) : "";
-  svgNode("main", 175, mainCy - 33, 152, 66, "⌘ 主线", t.sessionID ? (curTodo(t.sessionID) || modelShort(S.workerInfo[t.sessionID] && S.workerInfo[t.sessionID].model)) : "未创建", mainState);
+  var mainSub = "";
+  if (t.sessionID) {
+    var mtodo = S.sessions[t.sessionID] && S.sessions[t.sessionID]._todo;
+    if (mtodo) {
+      for (var mq = 0; mq < mtodo.length; mq++) if (mtodo[mq].status === "in_progress") { mainSub = trunc(mtodo[mq].content, 22); break; }
+    }
+    if (!mainSub) {
+      var mwi = S.workerInfo[t.sessionID] || {};
+      if (mwi.running && mainState === "run") mainSub = trunc(mwi.running, 22);
+      else if (mtodo && mtodo.length) {
+        var mdone = mtodo.filter(function(x){ return x.status === "completed"; }).length;
+        mainSub = mtodo.length + "步 " + mdone + "/" + mtodo.length + "完成";
+      } else mainSub = trunc(t.desc || "等待启动", 22);
+    }
+  } else mainSub = "未创建";
+  svgNode("main", 170, mainCy - 42, 200, 84, "⌘ 主线", mainSub, mainState);
   svgEdge("task", "main", mainState === "run");
   for (var wi2 = 0; wi2 < ws.length; wi2++) {
     var wId = "w" + wi2;
     var wy = mainCy - (svgRows * 88) / 2 + wi2 * 88 + 16;
     var wst = activityOf(ws[wi2].sessionID);
-    svgNode(wId, 372, wy, 152, 56, "◈ " + ws[wi2].role, curTodo(ws[wi2].sessionID), wst);
+    var wsub = "";
+    var wtl = S.sessions[ws[wi2].sessionID] && S.sessions[ws[wi2].sessionID]._todo;
+    if (wtl) {
+      for (var wq = 0; wq < wtl.length; wq++) if (wtl[wq].status === "in_progress") { wsub = trunc(wtl[wq].content, 20); break; }
+      if (!wsub) {
+        var wdone = wtl.filter(function(x){ return x.status === "completed"; }).length;
+        wsub = wtl.length + "步 " + wdone + "/" + wtl.length + "完成";
+      }
+    }
+    if (!wsub) wsub = ws[wi2].role;
+    svgNode(wId, 400, wy, 170, 56, "◈ " + ws[wi2].role, wsub, wst);
     svgEdge("main", wId, wst === "run" || mainState === "run");
   }
   var hasMerge = !!t.mergeSid;
   var mergeState = hasMerge ? activityOf(t.mergeSid) : (t.merged ? "done" : "");
   if (hasMerge || (ws.length && !t.merged)) {
-    svgNode("merge", 580, mainCy - 30, 138, 60, "⌘ 汇总" + (t.merged ? " ✓" : ""), hasMerge ? curTodo(t.mergeSid) : "分支完成后自动触发", mergeState);
+    var mergeSub = "";
+    if (hasMerge) {
+      var mtl2 = S.sessions[t.mergeSid] && S.sessions[t.mergeSid]._todo;
+      if (mtl2) {
+        for (var mq2 = 0; mq2 < mtl2.length; mq2++) if (mtl2[mq2].status === "in_progress") { mergeSub = trunc(mtl2[mq2].content, 20); break; }
+      }
+      if (!mergeSub) mergeSub = "整合各分支成果";
+    } else mergeSub = "分支完成后自动触发";
+    svgNode("merge", 610, mainCy - 30, 160, 60, "⌘ 汇总" + (t.merged ? " ✓" : ""), mergeSub, mergeState);
     for (wi2 = 0; wi2 < ws.length; wi2++) svgEdge("w" + wi2, "merge", mergeState === "run" || activityOf(ws[wi2].sessionID) === "run");
   }
   var chainY = svgH - 92;
   var chain = [];
   if (accR.length) {
+    var chainStep = 145;
     for (wi2 = 0; wi2 < accR.length; wi2++) {
       var st = wi2 < (t.acc.cur || 0) || t.acc.done ? "done" : (wi2 === (t.acc.cur || 0) ? (t.acc.tampered ? "warn" : "run") : "");
-      var nm = (accR[wi2].mode === "human" ? "◎ " : "R" + (wi2 + 1) + " ") + (accR[wi2].name || "");
-      svgNode("a" + wi2, 175 + wi2 * 122, chainY, 108, 48, nm, "", st);
+      var nm = (accR[wi2].mode === "human" ? "◎ " : "R" + (wi2 + 1) + " ") + trunc(accR[wi2].name || "", 10);
+      var accSub = "";
+      if (wi2 === (t.acc.cur || 0) && !t.acc.done) {
+        if (t.acc.tampered) accSub = "⚠ 篡改";
+        else if (t.acc.governance) accSub = "⚠ 治理";
+        else if (t.acc.attempts) accSub = "第" + (t.acc.attempts + 1) + "次";
+        else accSub = "当前";
+      } else if (wi2 < (t.acc.cur || 0) || t.acc.done) accSub = "✓";
+      svgNode("a" + wi2, 170 + wi2 * chainStep, chainY, 130, 48, nm, accSub, st);
       chain.push("a" + wi2);
     }
-    svgNode("fin", 175 + accR.length * 122, chainY, 86, 48, "✓ 完成", "", t.stage === "done" ? "done" : "");
+    svgNode("fin", 170 + accR.length * chainStep, chainY, 80, 48, "✓ DONE", "", t.stage === "done" ? "done" : "");
     chain.push("fin");
   } else {
-    svgNode("a0", 175, chainY, 108, 48, "◎ 验收", "", t.stage === "review" ? "run" : "");
-    svgNode("fin", 320, chainY, 86, 48, "✓ 完成", "", t.stage === "done" ? "done" : "");
+    svgNode("a0", 170, chainY, 130, 48, "◎ 验收", "", t.stage === "review" ? "run" : "");
+    svgNode("fin", 330, chainY, 80, 48, "✓ DONE", "", t.stage === "done" ? "done" : "");
     chain = ["a0", "fin"];
   }
   svgVEdge("main", chain[0], mainState === "run");
