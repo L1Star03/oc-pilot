@@ -2391,32 +2391,7 @@ function renderGraphView(){
     svgNode("merge", 610, mainCy - 30, 160, 60, "⌘ 汇总" + (t.merged ? " ✓" : ""), mergeSub, mergeState);
     for (wi2 = 0; wi2 < ws.length; wi2++) svgEdge("w" + wi2, "merge", mergeState === "run" || activityOf(ws[wi2].sessionID) === "run");
   }
-  var chainY = svgH - 92;
-  var chain = [];
-  if (accR.length) {
-    var chainStep = 145;
-    for (wi2 = 0; wi2 < accR.length; wi2++) {
-      var st = wi2 < (t.acc.cur || 0) || t.acc.done ? "done" : (wi2 === (t.acc.cur || 0) ? (t.acc.tampered ? "warn" : "run") : "");
-      var nm = (accR[wi2].mode === "human" ? "◎ " : "R" + (wi2 + 1) + " ") + trunc(accR[wi2].name || "", 10);
-      var accSub = "";
-      if (wi2 === (t.acc.cur || 0) && !t.acc.done) {
-        if (t.acc.tampered) accSub = "⚠ 篡改";
-        else if (t.acc.governance) accSub = "⚠ 治理";
-        else if (t.acc.attempts) accSub = "第" + (t.acc.attempts + 1) + "次";
-        else accSub = "当前";
-      } else if (wi2 < (t.acc.cur || 0) || t.acc.done) accSub = "✓";
-      svgNode("a" + wi2, 170 + wi2 * chainStep, chainY, 130, 48, nm, accSub, st);
-      chain.push("a" + wi2);
-    }
-    svgNode("fin", 170 + accR.length * chainStep, chainY, 80, 48, "✓ DONE", "", t.stage === "done" ? "done" : "");
-    chain.push("fin");
-  } else {
-    svgNode("a0", 170, chainY, 130, 48, "◎ 验收", "", t.stage === "review" ? "run" : "");
-    svgNode("fin", 330, chainY, 80, 48, "✓ DONE", "", t.stage === "done" ? "done" : "");
-    chain = ["a0", "fin"];
-  }
-  svgVEdge("main", chain[0], mainState === "run");
-  for (wi2 = 0; wi2 < chain.length - 1; wi2++) svgEdge(chain[wi2], chain[wi2 + 1], false, true);
+
   function curTodo(sid){
     var tl = S.sessions[sid] && S.sessions[sid]._todo;
     if (!tl) return "";
@@ -2425,8 +2400,9 @@ function renderGraphView(){
   }
 
   var html = '<div class="flowpage">';
-  html += '<div style="padding:10px 12px 0;font-size:11px;color:var(--mut);letter-spacing:1px">执行流程图 · 实线=固定流转 · 虚线=并行派发/汇总 · 流动光点=活跃通道 · 点节点可跳转</div>';
-  html += '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" style="width:100%;max-width:900px;display:block;margin:0 auto">' + svgParts.join("") + '</svg>';
+  html += '<div style="padding:10px 12px 0;font-size:11px;color:var(--mut);letter-spacing:1px">执行流程 · 点节点或卡片跳转对话</div>';
+  var flowH = 170 + svgRows * 95;
+  html += '<svg viewBox="0 0 ' + svgW + ' ' + flowH + '" style="width:100%;max-width:900px;display:block;margin:0 auto">' + svgParts.join("") + '</svg>';
   html += '<h4>Agent 详情</h4>';
 
   // Main agent
@@ -2447,70 +2423,10 @@ function renderGraphView(){
     html += '</div>';
   }
 
-  // Acceptance chain
-  if (accR.length) {
-    html += '<h4>验收链</h4>';
-    html += '<div class="fchain">';
-    for (var j = 0; j < accR.length; j++) {
-      var st = j < (t.acc.cur || 0) || t.acc.done ? "pass" : (j === (t.acc.cur || 0) ? (t.acc.tampered ? "fail" : "cur") : "");
-      var nm = (accR[j].mode === "human" ? "◎ " : "") + (accR[j].name || "R" + (j+1));
-      html += '<div class="fstep ' + st + (accR[j].mode === "human" ? " human" : "") + '" data-facc="' + j + '">' + escx(nm) + '</div>';
-      if (j < accR.length - 1) html += '<span class="fsep">──</span>';
-    }
-    if (t.acc.done) html += '<span class="fsep">──</span><div class="fstep pass">✓ DONE</div>';
-    html += '</div>';
-  }
-
-  // Detail section
-  html += '<h4>当前状态</h4>';
-  html += '<div class="fdetail">';
-  html += '<div class="dl"><span class="dk">STAGE</span><span class="dv">' + FLOW[t.stage].icon + ' ' + FLOW[t.stage].name + '</span></div>';
-  if (t.acc && t.acc.cur !== undefined && accR.length) {
-    var curR = accR[t.acc.cur] || accR[accR.length - 1];
-    html += '<div class="dl"><span class="dk">当前轮</span><span class="dv">' + escx((curR.name || "R" + (t.acc.cur+1))) + ' · 第' + ((t.acc.attempts||0)+1) + '次尝试</span></div>';
-  }
-  if (t.acc && t.acc.lastPassCommit) {
-    html += '<div class="dl"><span class="dk">绑定 COMMIT</span><span class="dv ok">@' + escx(t.acc.lastPassCommit.slice(0,7)) + '</span></div>';
-  }
-  if (t.acc && t.acc.reviewResult) {
-    var rr = t.acc.reviewResult;
-    html += '<div class="dl"><span class="dk">审查 AGENT</span><span class="dv ' + (rr.approved ? "ok" : "err") + '">' + (rr.approved ? "✓ 通过" : "✗ 驳回") + ' — ' + escx(trunc(rr.reason, 120)) + '</span></div>';
-  } else if (t.acc && t.acc.status === "review_agent") {
-    html += '<div class="dl"><span class="dk">审查 AGENT</span><span class="dv warn">◈ 审核中…</span></div>';
-  }
-  if (t.acc && t.acc.governance && t.acc.governance.failures) {
-    html += '<div class="dl"><span class="dk">治理门禁</span><span class="dv err">';
-    for (var gf = 0; gf < t.acc.governance.failures.length; gf++) {
-      var f = t.acc.governance.failures[gf];
-      html += '▸ ' + escx(f.gate) + ': ' + escx(f.detail) + '<br>';
-    }
-    html += '</span></div>';
-  }
-  if (t.acc && t.acc.tampered) {
-    html += '<div class="dl"><span class="dk">脚本完整性</span><span class="dv err">⚠ 篡改检测触发（R' + (t.acc.tampered.round+1) + '）</span></div>';
-  }
-  if (t.acc && t.acc.scopeInvalidated) {
-    html += '<div class="dl"><span class="dk">范围变更</span><span class="dv warn">↺ ' + t.acc.scopeInvalidated + ' 次</span></div>';
-  }
-  html += '</div>';
-
-  // Governance status
-  if (t.sessionID) {
-    html += '<h4>治理状态</h4>';
-    html += '<div class="fdetail">';
-    var todos = (S.sessions[t.sessionID] || {})._todo || [];
-    var pending = todos.filter(function(x){ return x.status === "pending" || x.status === "in_progress"; });
-    html += '<div class="dl"><span class="dk">TODO 收敛</span><span class="dv ' + (pending.length === 0 ? "ok" : "warn") + '">' + (todos.length === 0 ? "无 todo" : pending.length + "/" + todos.length + " 未完成") + '</span></div>';
-    var runSecs = 0;
-    var _act = t.sessionID ? activityOf(t.sessionID) : "";
-    if (_act === "run" && S.runStart[t.sessionID]) runSecs = Math.round((Date.now() - S.runStart[t.sessionID]) / 1000);
-    if (runSecs > 0) html += '<div class="dl"><span class="dk">运行时长</span><span class="dv">⏱ ' + fmtDur(runSecs) + '</span></div>';
-    html += '</div>';
-  }
-
   html += '</div>';
 
   dv.innerHTML = html;
+  dv.scrollTop = 0;
 
   // Click handlers
   var cards = dv.querySelectorAll(".fcard");
